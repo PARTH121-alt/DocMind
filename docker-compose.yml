@@ -1,0 +1,74 @@
+# DocMind - local orchestration
+#
+#   docker compose up --build          app on http://localhost:8080
+#
+# Defaults to SQLite + FAISS so the stack starts with no external services.
+# For production see the notes at the bottom of this file.
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: docmind:latest
+    ports:
+      - "8080:8000"
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      # Override in a .env file. The app refuses nothing without it, but you
+      # MUST replace it before exposing this service publicly.
+      SECRET_KEY: ${SECRET_KEY:-please-change-me-to-a-long-random-value}
+      DATABASE_URL: sqlite+aiosqlite:////data/docmind.db
+      VECTOR_DB: faiss
+      STORAGE_DIR: /data
+      # Leave blank to run fully on-device. Set to use hosted models + OCR.
+      HF_TOKEN: ${HF_TOKEN:-}
+      GENERATION_BACKEND: ${GENERATION_BACKEND:-local}
+      HF_MODEL: ${HF_MODEL:-Qwen/Qwen2.5-7B-Instruct}
+      HF_EMBEDDING_MODEL: ${HF_EMBEDDING_MODEL:-BAAI/bge-small-en-v1.5}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
+    volumes:
+      # Persists uploads, the FAISS index and the model cache across restarts.
+      - docmind-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  # -------------------------------------------------------------------------
+  # Optional production dependencies. Enable with:
+  #   docker compose --profile postgres --profile qdrant up --build
+  # and set DATABASE_URL / VECTOR_DB / QDRANT_URL accordingly.
+  # -------------------------------------------------------------------------
+  postgres:
+    profiles: ["postgres"]
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: docmind
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-docmind}
+      POSTGRES_DB: docmind
+    volumes:
+      - docmind-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U docmind"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  qdrant:
+    profiles: ["qdrant"]
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+    volumes:
+      - docmind-qdrant:/qdrant/storage
+    restart: unless-stopped
+
+volumes:
+  docmind-data:
+  docmind-pg:
+  docmind-qdrant:

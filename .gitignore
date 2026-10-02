@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+frontend/dist/
+.vite/
+
+# Environment & secrets — never commit a filled-in .env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Application data: uploads, vector indexes, databases and model weights.
+# `storage/` holds ~1GB of cached models and user uploads; keep it local.
+# The directory is created automatically at startup, so no .gitkeep is needed.
+storage/
+
+# Build artefacts served by the backend in production
+static/
+
+# Logs
+*.log
+storage/logs/
+
+# Test artefacts
+storage/screenshots/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

@@ -1,0 +1,54 @@
+[project]
+name = "docmind-backend"
+version = "1.0.0"
+description = "Document intelligence platform with a Hugging Face powered RAG pipeline"
+requires-python = ">=3.11"
+
+[project.optional-dependencies]
+# Core AI stack: embeddings + local generation + reranking, all on CPU.
+# Deliberately avoids PyTorch so the app installs in a few hundred MB.
+ai = [
+    "fastembed>=0.4.0",
+    "onnxruntime-genai>=0.17.0",
+    "huggingface-hub>=0.25.0",
+    "faiss-cpu>=1.8.0",
+]
+# Document parsing for every supported format.
+documents = [
+    "pymupdf>=1.24.0",
+    "python-docx>=1.1.0",
+    "python-pptx>=0.6.23",
+    "openpyxl>=3.1.0",
+    "pillow>=10.0.0",
+]
+# Offline benchmark + evaluation datasets from the Hugging Face Hub.
+eval = ["datasets>=2.19.0"]
+# Optional: PostgreSQL instead of SQLite.
+postgres = ["asyncpg>=0.29.0"]
+# Optional: hosted vector databases.
+qdrant = ["qdrant-client>=1.9.0"]
+chroma = ["chromadb>=0.5.0"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["app"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+# E501: several prompt strings and SQLAlchemy call chains read better on one
+#   line and are not worth mechanically wrapping.
+# B008: FastAPI's Depends() in defaults is the documented idiom.
+# UP042: the str+Enum columns are stored as VARCHAR by SQLAlchemy; switching to
+#   StrEnum would change the persisted representation.
+ignore = ["B008", "E501", "UP042"]
+
+[tool.ruff.lint.per-file-ignores]
+# Test/diagnostic scripts intentionally probe broadly and tolerate failures.
+"scripts/*" = ["S110", "BLE001", "E402"]

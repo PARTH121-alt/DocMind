@@ -1,0 +1,246 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * One neutral ramp + one accent, defined as RGB channels so Tailwind's
+ * alpha modifiers (bg-surface-1/60) work. Light and dark share the same
+ * token names, so components never branch on the theme.
+ */
+@layer base {
+  :root {
+    --surface-0: 250 250 251;
+    --surface-1: 255 255 255;
+    --surface-2: 244 245 247;
+    --surface-3: 233 235 239;
+    --ink: 24 26 32;
+    --ink-muted: 88 94 107;
+    --ink-faint: 140 147 160;
+    --line: 226 229 235;
+    --accent: 79 70 229;
+    --accent-soft: 238 236 253;
+    --accent-strong: 67 56 202;
+    --shadow-tint: 15 18 25;
+  }
+
+  .dark {
+    --surface-0: 12 13 17;
+    --surface-1: 20 22 28;
+    --surface-2: 26 28 36;
+    --surface-3: 36 39 48;
+    --ink: 237 239 243;
+    --ink-muted: 160 166 179;
+    --ink-faint: 110 117 131;
+    --line: 44 48 58;
+    --accent: 129 122 255;
+    --accent-soft: 35 33 62;
+    --accent-strong: 154 148 255;
+    --shadow-tint: 0 0 0;
+  }
+
+  * {
+    @apply border-line;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-surface-0 text-ink antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'ss01';
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Subtle scrollbars that follow the theme. */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-surface-3;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-ink-faint;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-accent/60 ring-offset-2 ring-offset-surface-0;
+  }
+
+  /* Respect users who ask for less motion. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-line bg-surface-1 shadow-card;
+  }
+
+  .btn {
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-xl px-3.5 py-2
+           text-sm font-medium transition-all duration-150
+           disabled:pointer-events-none disabled:opacity-45;
+  }
+  .btn-primary {
+    @apply btn bg-accent text-white shadow-card hover:bg-accent-strong active:scale-[0.98];
+  }
+  .btn-secondary {
+    @apply btn border border-line bg-surface-1 text-ink hover:bg-surface-2 active:scale-[0.98];
+  }
+  .btn-ghost {
+    @apply btn text-ink-muted hover:bg-surface-2 hover:text-ink;
+  }
+  .btn-danger {
+    @apply btn text-red-600 hover:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/15;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-line bg-surface-1 px-3.5 py-2.5 text-sm text-ink
+           placeholder:text-ink-faint transition-colors
+           focus:border-accent/60 focus:outline-none focus:ring-2 focus:ring-accent/20;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-2
+           px-2.5 py-1 text-xs font-medium text-ink-muted;
+  }
+
+  .kbd {
+    @apply rounded border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-ink-faint;
+  }
+
+  /* Loading skeleton with a travelling sheen. */
+  .skeleton {
+    @apply relative overflow-hidden rounded-lg bg-surface-2;
+  }
+  .skeleton::after {
+    @apply absolute inset-0 -translate-x-full animate-shimmer
+           bg-gradient-to-r from-transparent via-surface-3/70 to-transparent;
+    content: '';
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply border border-line/70 backdrop-blur-xl;
+    background-color: rgb(var(--surface-1) / 0.72);
+  }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* ==========================================================================
+   Markdown rendering for assistant answers
+   ========================================================================== */
+@layer components {
+  .markdown {
+    @apply text-[14.5px] leading-[1.72] text-ink;
+    overflow-wrap: anywhere;
+  }
+  .markdown > *:first-child { margin-top: 0; }
+  .markdown > *:last-child { margin-bottom: 0; }
+
+  .markdown h1, .markdown h2, .markdown h3, .markdown h4 {
+    @apply mt-5 mb-2 font-semibold tracking-tight text-ink;
+  }
+  .markdown h1 { @apply text-lg; }
+  .markdown h2 { @apply text-[1.0625rem]; }
+  .markdown h3 { @apply text-[0.9375rem]; }
+  .markdown h4 { @apply text-sm text-ink-muted; }
+
+  .markdown p { @apply my-2.5; }
+  .markdown strong { @apply font-semibold text-ink; }
+  .markdown em { @apply italic; }
+
+  .markdown ul { @apply my-2.5 list-disc space-y-1 pl-5 marker:text-ink-faint; }
+  .markdown ol { @apply my-2.5 list-decimal space-y-1 pl-5 marker:text-ink-faint; }
+  .markdown li > ul, .markdown li > ol { @apply my-1; }
+
+  .markdown a {
+    @apply font-medium text-accent underline decoration-accent/30 underline-offset-2
+           transition-colors hover:decoration-accent;
+  }
+
+  .markdown blockquote {
+    @apply my-3 border-l-2 border-accent/40 bg-accent-soft/40 py-1.5 pl-3.5 pr-2 text-ink-muted;
+  }
+
+  .markdown hr { @apply my-4 border-line; }
+
+  .markdown :not(pre) > code {
+    @apply rounded-md border border-line bg-surface-2 px-1.5 py-0.5
+           font-mono text-[0.8125em] text-accent;
+  }
+
+  .markdown .table-scroll {
+    @apply my-3 w-full overflow-x-auto rounded-xl border border-line;
+  }
+  .markdown table { @apply w-full border-collapse text-[13.5px]; }
+  .markdown thead { @apply bg-surface-2; }
+  .markdown th {
+    @apply border-b border-line px-3 py-2 text-left font-semibold text-ink;
+    white-space: nowrap;
+  }
+  .markdown td {
+    @apply border-b border-line/60 px-3 py-2 align-top text-ink-muted;
+  }
+  .markdown tbody tr:last-child td { @apply border-b-0; }
+  .markdown tbody tr:hover { @apply bg-surface-2/50; }
+
+  .markdown .code-block {
+    @apply my-3 overflow-hidden rounded-xl border border-line bg-[#0d1117] text-[#e6edf3];
+  }
+  .markdown .code-block-header {
+    @apply flex items-center justify-between border-b border-white/10 px-3 py-1.5
+           font-mono text-[10px] uppercase tracking-wide text-white/50;
+  }
+  .markdown .code-block pre {
+    @apply overflow-x-auto p-3.5 text-[13px] leading-relaxed;
+  }
+  .markdown .code-block code {
+    @apply bg-transparent p-0 font-mono text-inherit;
+  }
+
+  /* Inline [n] citation chips */
+  .citation-chip {
+    @apply mx-0.5 inline-flex h-[1.15em] min-w-[1.15em] translate-y-[1px] items-center
+           justify-center rounded-[5px] border border-accent/30 bg-accent-soft px-1
+           font-sans text-[0.7em] font-semibold text-accent
+           transition-all hover:border-accent hover:bg-accent hover:text-white;
+  }
+  .citation-static { @apply text-[0.85em] font-semibold text-accent; }
+
+  /* Typing caret for streaming responses */
+  .stream-caret::after {
+    content: '';
+    @apply ml-0.5 inline-block h-[1em] w-[2px] translate-y-[2px] animate-pulse-soft bg-accent;
+  }
+}

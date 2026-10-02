@@ -1,0 +1,17 @@
+# Repo-level lint configuration (backend/ also has a pyproject section, which
+# ruff would otherwise prefer for files under that directory).
+line-length = 100
+target-version = "py311"
+
+[lint]
+select = ["E", "F", "I", "UP", "B"]
+# E501: several prompt strings and SQLAlchemy call chains read better on one
+#   line and are not worth mechanically wrapping.
+# B008: FastAPI's Depends() in defaults is the documented idiom.
+# UP042: the str+Enum columns are persisted as VARCHAR by SQLAlchemy; moving to
+#   StrEnum would change the stored representation.
+ignore = ["B008", "E501", "UP042"]
+
+[lint.per-file-ignores]
+# Test and diagnostic scripts intentionally probe broadly and tolerate failures.
+"scripts/*" = ["S110", "BLE001", "E402"]
