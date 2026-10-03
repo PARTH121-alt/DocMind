@@ -7,6 +7,7 @@
  */
 
 import type {
+  WebResponse,
   AppSettings,
   AuthResponse,
   ChatResponse,
@@ -171,6 +172,9 @@ export interface ChatParams {
   max_tokens?: number | null
   top_k?: number | null
   document_ids?: string[] | null
+  allow_general?: boolean | null
+  allow_web?: boolean | null
+  search_web?: boolean | null
 }
 
 export const chat = {
@@ -288,6 +292,27 @@ export const smart = {
     request<{ questions: string[]; sources: string[] }>('/documents/suggested-questions', {
       method: 'POST',
       body: JSON.stringify({ document_ids: documentIds, collection_id: collectionId ?? null }),
+    }),
+}
+
+// ---------------------------------------------------------------------------
+// Web search / page ingestion
+// ---------------------------------------------------------------------------
+export type { WebResponse } from './types'
+
+export const web = {
+  providers: () =>
+    request<{ active: string; providers: { name: string; configured: boolean; requires_key: boolean; env_var: string | null }[] }>(
+      '/web/providers',
+    ),
+
+  search: (query: string, maxResults = 5) =>
+    request<WebResponse>(`/web/search?query=${encodeURIComponent(query)}&max_results=${maxResults}`),
+
+  fetchPages: (urls: string[], collectionId?: string | null) =>
+    request<WebResponse>('/web/fetch', {
+      method: 'POST',
+      body: JSON.stringify({ urls, collection_id: collectionId ?? null }),
     }),
 }
 

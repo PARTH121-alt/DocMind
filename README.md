@@ -103,9 +103,51 @@ back to the local model rather than failing the request.
 
 ---
 
+## Four answer sources, always labelled
+
+Every reply states where it came from. Nothing is ever presented as
+document-grounded unless it is.
+
+| Badge | Source | Grounded? | How it works |
+|---|---|---|---|
+| 🟢 **From your documents** | Your uploads | yes | Retrieval + rerank + grounding check; citations link to file and page |
+| 🔵 **From the web** | Pages fetched live | yes, if supported | Search or a pasted URL, then the same grounding check; citations link to the URL |
+| 🟣 **Live** | Server clock | n/a | Date and time computed on the server — **never** asked of the model, which has no clock |
+| 🟠 **General knowledge** | The model's own weights | **no** | Greetings and general questions, clearly marked as unsourced |
+
+Ask "hi", "what is today's date", "who is the current president of France",
+or paste a URL — the router picks the right subsystem before retrieval runs.
+
+### Web search
+
+Works with no API key: Wikipedia plus any URLs you paste. For real web search
+(news, weather, prices) add a key:
+
+```bash
+BRAVE_API_KEY=...    # or TAVILY_API_KEY / SERPER_API_KEY
+```
+
+The active provider is shown in the **Add website** panel and at
+`GET /api/web/providers`.
+
+### Fetched pages are documents
+
+A web page is chunked, embedded and indexed exactly like an upload, so it can
+be cited and previewed in the same way. Citations carry `source_type` (`web`)
+and `source_url` instead of a page number.
+
+### URL safety
+
+User-supplied URLs are a trust boundary. The fetcher rejects non-http(s)
+schemes, resolves the hostname and refuses any private, loopback, link-local
+or reserved address — blocking SSRF against cloud metadata
+(`169.254.169.254`), internal panels and `localhost` — and re-validates after
+every redirect. Responses are size- and time-bounded.
+
 ## Anti-hallucination
 
-The grounded contract is enforced at four independent points:
+Grounding applies to document **and** web answers alike, and is enforced at
+four independent points:
 
 1. **Retrieval floor** — if the best passage similarity is below
    `RELEVANCE_THRESHOLD`, the model is never called and the request returns a refusal.
@@ -164,6 +206,9 @@ Full interactive docs: **http://127.0.0.1:8000/api/docs**
 | `POST` | `/api/chat` | Non-streaming equivalent |
 | `GET/POST/PATCH/DELETE` | `/api/conversations[...]` | Chat history |
 | `POST` | `/api/search` | Semantic search |
+| `GET/POST` | `/api/web/search` | Web search (`?ingest=true` also indexes the hits) |
+| `POST` | `/api/web/fetch` | Fetch URLs and index them as documents |
+| `GET` | `/api/web/providers` | Which search backends are active |
 | `POST` | `/api/documents/{summarize,compare,extract-info,quiz,study-notes,suggested-questions}` | Smart features |
 | `GET` | `/api/models`, `/api/health`, `/api/settings` | Catalogue, status, settings |
 | `GET/POST` | `/api/evaluation/{datasets,retrieval-benchmark,hallucination-check}` | HF dataset benchmarks |
@@ -204,6 +249,7 @@ the *desired* outcome.
 |---|---|
 | `contract_test.py` | Route/handler/schema consistency; no secret in any response |
 | `refusal_test.py` | Sentinel handling, grounding checks, prompt-profile selection |
+| `live_web_test.py` | Clock answers, SSRF guards, intent routing, provider fallbacks |
 | `chunking_test.py` | Cleaning artefacts; chunk invariants (page anchoring, offsets, overlap) |
 | `vectorstore_test.py` | FAISS add/search/delete, and that deletions keep ids and payloads aligned |
 | `e2e_pipeline_test.py` | Real extraction → embedding → FAISS → generation, plus both defences |
@@ -304,7 +350,14 @@ scripts/       dev.sh, test suites, diagnostics
 ## Known limitations
 
 - **Local model quality.** Qwen2.5-0.5B is a fallback, not a showcase. Answers are
-  correct and cited but terse; use `hf_api` for research-grade output.
+  correct and cited but terse; use `hf_api` for research-grade output. This is most
+  visible in `general` mode, where a 0.5B model has little to offer.
+- **Wikipedia is the default search backend.** It is encyclopedic, not a news
+  index, so "latest news about X" returns background rather than current
+  reporting until you add a Brave/Tavily/Serper key.
+- **Keyed search providers are unverified.** Brave, Tavily and Serper are
+  implemented against their published APIs but could not be exercised without
+  keys in this environment; Wikipedia and direct URL fetching are verified live.
 - **Small-model context.** Sub-1B models are given a single best passage
   (`SMALL_MODEL_TOP_K=1`) because they are measurably derailed by competing figures —
   8/8 correct with one passage, 0/8 with two on the same question. Larger models use

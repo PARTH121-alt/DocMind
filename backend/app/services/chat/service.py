@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 import re
+from urllib.parse import urlparse
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -92,6 +93,8 @@ def build_citations(chunks: list[RetrievedChunk]) -> list[Citation]:
                 chunk_id=chunk.chunk_id,
                 score=chunk.rerank_score if chunk.rerank_score is not None else chunk.score,
                 rank=rank,
+                source_type=chunk.source_type,
+                source_url=chunk.source_url,
             )
         )
     return cited
@@ -226,6 +229,7 @@ async def save_assistant_message(
     latency_ms: int,
     grounded: bool,
     confidence: float,
+    mode: str = "document",
 ) -> Message:
     """Persist the assistant turn together with its citations."""
     used = _keep_cited_only(chunks, answer) if grounded else []
@@ -241,6 +245,7 @@ async def save_assistant_message(
         grounded=grounded,
         confidence=confidence,
         latency_ms=latency_ms,
+        mode=mode,
     )
     db.add(msg)
     await db.flush()
@@ -257,6 +262,8 @@ async def save_assistant_message(
                 excerpt=c.excerpt,
                 score=c.score,
                 rank=c.rank,
+                source_type=c.source_type,
+                source_url=c.source_url,
             )
         )
     await db.commit()
@@ -275,6 +282,13 @@ def citations_to_schema(citations: list[Citation]) -> list[CitationOut]:
             chunk_id=c.chunk_id,
             score=c.score,
             rank=c.rank,
+            source_type=c.source_type,
+            source_url=c.source_url,
+            domain=(
+                (urlparse(c.source_url).hostname or None)
+                if c.source_url
+                else None
+            ),
         )
         for c in citations
     ]

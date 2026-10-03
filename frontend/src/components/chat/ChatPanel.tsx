@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useApp } from '../../lib/AppContext'
 import * as api from '../../lib/api'
-import type { Citation, RetrievedChunk } from '../../lib/types'
+import type { AnswerMode, Citation, RetrievedChunk } from '../../lib/types'
 import { copyToClipboard, downloadText } from '../../lib/utils'
 import { MessageBubble } from './MessageBubble'
 import { EmptyState } from './EmptyState'
@@ -32,10 +32,11 @@ interface StreamingState {
   retrieved: RetrievedChunk[]
   confidence: number
   sources: string[]
+  mode: AnswerMode
 }
 
 export function ChatPanel() {
-  const { state, derived, dispatch, newChat, reloadConversations, openConversation } = useApp()
+  const { state, dispatch, newChat, reloadConversations, openConversation } = useApp()
   const toast = useToast()
 
   const [streaming, setStreaming] = useState<StreamingState | null>(null)
@@ -82,12 +83,13 @@ export function ChatPanel() {
               latency_ms: null,
               created_at: new Date().toISOString(),
               citations: [],
+              mode: 'document' as const,
             },
           ],
         })
       }
 
-      setStreaming({ text: '', citations: [], retrieved: [], confidence: 0, sources: [] })
+      setStreaming({ text: '', citations: [], retrieved: [], confidence: 0, sources: [], mode: 'document' })
 
       const stop = api.chat.stream(
         {
@@ -115,11 +117,17 @@ export function ChatPanel() {
             // user-facing message and grounded=false, replacing any raw
             // sentinel the model may have streamed before it was caught.
             const convId = data.conversation_id as string
-            setStreaming((s) =>
-              s && data.grounded === false
-                ? { ...s, text: (data.answer as string) || REFUSAL_FALLBACK }
-                : s,
-            )
+            setStreaming((s) => {
+              if (!s) return s
+              const nextMode = (data.mode as AnswerMode) ?? s.mode
+              const isRefusal = data.grounded === false && nextMode === 'document'
+              return {
+                ...s,
+                mode: nextMode,
+                sources: (data.sources as string[]) ?? s.sources,
+                text: isRefusal ? ((data.answer as string) || REFUSAL_FALLBACK) : s.text,
+              }
+            })
             dispatch({ type: 'conversation/active', id: convId })
             void reloadConversations()
             void openConversation(convId)
@@ -219,10 +227,12 @@ export function ChatPanel() {
                           latency_ms: null,
                           created_at: new Date().toISOString(),
                           citations: streaming.citations,
+                          mode: streaming.mode,
                         }}
                         streaming
                         citations={streaming.citations}
                         retrieved={streaming.retrieved}
+                        mode={streaming.mode}
                       />
                     ) : (
                       <ThinkingIndicator sources={streaming.sources} />
@@ -258,12 +268,10 @@ export function ChatPanel() {
         </div>
       )}
 
-      <Composer
-        onSend={send}
-        onStop={stopGeneration}
-        streaming={Boolean(streaming)}
-        disabled={!derived.hasIndexed}
-      />
+      {/* The composer is always available: even with no documents the user can
+          ask a live/general question or paste a URL. The backend decides which
+          subsystem answers, so gating here would wrongly block those modes. */}
+      <Composer onSend={send} onStop={stopGeneration} streaming={Boolean(streaming)} />
     </div>
   )
 }

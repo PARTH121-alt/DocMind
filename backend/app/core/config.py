@@ -103,6 +103,23 @@ class Settings(BaseSettings):
     # answer from ever being presented as sourced.
     relevance_threshold: float = 0.42
 
+    # ---- Web search / live answers ----
+    # Keyed providers are used when configured; Wikipedia is the tokenless
+    # default so web answers work immediately.
+    brave_api_key: str | None = None
+    tavily_api_key: str | None = None
+    serper_api_key: str | None = None
+    web_max_results: int = 5
+    # Max URLs ingested in one request.
+    web_max_fetch_urls: int = 5
+    # How many top results to fetch full text for (fetching is the slow part).
+    web_fetch_top_n: int = 3
+    max_web_chars: int = 20_000
+    # Allow answers that are not grounded in the user's documents.
+    allow_general_answers: bool = True
+    # Permit fetching user-supplied URLs into the knowledge base.
+    allow_web_fetch: bool = True
+
     # ---- Datasets / evaluation ----
     enable_datasets: bool = True
     hf_eval_dataset: str = "rajpurkar/squad"

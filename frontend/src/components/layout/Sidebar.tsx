@@ -6,6 +6,7 @@ import { conversations as convApi } from '../../lib/api'
 import type { Collection } from '../../lib/types'
 import { cn, fileIcon, formatRelative, isProcessing, STATUS_META } from '../../lib/utils'
 import { UploadDropzone } from '../documents/UploadDropzone'
+import { WebPanel } from '../chat/WebPanel'
 import { useToast } from '../ui/Toasts'
 import {
   IconChat,
@@ -13,6 +14,7 @@ import {
   IconCog,
   IconCpu,
   IconFolder,
+  IconGlobe,
   IconGrid,
   IconLayers,
   IconLogOut,
@@ -36,6 +38,7 @@ export function Sidebar({ view, onViewChange }: Props) {
   const toast = useToast()
   const [query, setQuery] = useState('')
   const [showUpload, setShowUpload] = useState(false)
+  const [showWeb, setShowWeb] = useState(false)
   const [showCollections, setShowCollections] = useState(true)
 
   const collapsed = !state.sidebarOpen
@@ -123,6 +126,24 @@ export function Sidebar({ view, onViewChange }: Props) {
               }}
             />
           </div>
+        )}
+
+        {!collapsed && (
+          <button
+            onClick={() => setShowWeb((v) => !v)}
+            className={cn(
+              'btn-secondary w-full',
+              showWeb && 'border-sky-500/50 bg-sky-500/10 text-sky-600 dark:text-sky-400',
+            )}
+            title="Analyse websites"
+          >
+            <IconGlobe className="text-base" />
+            Add website
+          </button>
+        )}
+
+        {showWeb && !collapsed && (
+          <WebPanel onDone={() => setShowWeb(false)} />
         )}
 
         <div className="my-2 h-px bg-line" />

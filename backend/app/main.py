@@ -84,12 +84,14 @@ from app.api.routes import documents as document_routes  # noqa: E402
 from app.api.routes import evaluation as evaluation_routes  # noqa: E402
 from app.api.routes import models as model_routes  # noqa: E402
 from app.api.routes import search as search_routes  # noqa: E402
+from app.api.routes import web as web_routes  # noqa: E402
 
 app.include_router(auth_routes.router)
 app.include_router(document_routes.router)
 app.include_router(collection_routes.router)
 app.include_router(chat_routes.router)
 app.include_router(search_routes.router)
+app.include_router(web_routes.router)
 app.include_router(model_routes.router)
 app.include_router(evaluation_routes.router)
 

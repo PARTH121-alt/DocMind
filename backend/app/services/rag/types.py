@@ -65,6 +65,9 @@ class RetrievedChunk:
     section: str | None = None
     rerank_score: float | None = None
     collection_id: str | None = None
+    # Provenance: "document" for uploads, "web" for fetched pages.
+    source_type: str = "document"
+    source_url: str | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -76,7 +79,19 @@ class RetrievedChunk:
             "rerank_score": round(self.rerank_score, 4) if self.rerank_score is not None else None,
             "page_number": self.page_number,
             "section": self.section,
+            "source_type": self.source_type,
+            "source_url": self.source_url,
         }
+
+    @property
+    def domain(self) -> str | None:
+        """Hostname for a web-sourced chunk."""
+        if not self.source_url:
+            return None
+        from urllib.parse import urlparse
+
+        host = urlparse(self.source_url).hostname or None
+        return host[4:] if host and host.startswith("www.") else host
 
 
 @dataclass
@@ -89,3 +104,6 @@ class Citation:
     chunk_id: str | None = None
     score: float = 0.0
     rank: int = 0
+    # Provenance: "document" for uploads, "web" for fetched pages.
+    source_type: str = "document"
+    source_url: str | None = None

@@ -70,8 +70,8 @@ export function Composer({ onSend, onStop, streaming, disabled, disabledReason, 
             disabled={disabled}
             placeholder={
               disabled
-                ? disabledReason ?? 'Upload a document to start asking questions'
-                : 'Ask anything about your documents…'
+                ? (disabledReason ?? 'Upload a document to start asking questions')
+                : 'Ask about your documents, paste a URL, or just say hi…'
             }
             className={cn(
               'max-h-[200px] min-h-[2.5rem] flex-1 resize-none bg-transparent px-2 py-2',
@@ -103,7 +103,7 @@ export function Composer({ onSend, onStop, streaming, disabled, disabledReason, 
         </div>
 
         <p className="mt-2 text-center text-[11px] text-ink-faint">
-          Answers come only from your uploaded documents
+          Paste a URL to analyse it · ask about your documents or the live web
           <span className="mx-1.5 hidden sm:inline">
             <kbd className="kbd">Enter</kbd> to send · <kbd className="kbd">Shift</kbd>+
             <kbd className="kbd">Enter</kbd> for a new line

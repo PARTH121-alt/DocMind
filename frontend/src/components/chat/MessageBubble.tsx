@@ -1,7 +1,7 @@
 /** A single chat message: user bubble or assistant answer with sources. */
 
 import { memo, useState } from 'react'
-import type { Citation, Message, RetrievedChunk } from '../../lib/types'
+import type { AnswerMode, Citation, Message, RetrievedChunk } from '../../lib/types'
 import {
   cn,
   confidenceTone,
@@ -10,6 +10,7 @@ import {
   formatTime,
 } from '../../lib/utils'
 import { Markdown } from './Markdown'
+import { ModeBadge } from './ModeBadge'
 import {
   IconAlert,
   IconCheck,
@@ -24,6 +25,7 @@ interface Props {
   streaming?: boolean
   citations?: Citation[]
   retrieved?: RetrievedChunk[]
+  mode?: AnswerMode
   onCitationClick?: (citation: Citation) => void
   onRegenerate?: () => void
 }
@@ -33,9 +35,11 @@ function MessageBubbleBase({
   streaming,
   citations = [],
   retrieved = [],
+  mode,
   onCitationClick,
   onRegenerate,
 }: Props) {
+  const answerMode: AnswerMode = mode ?? message.mode ?? 'document'
   const [copied, setCopied] = useState(false)
   const isUser = message.role === 'user'
 
@@ -118,11 +122,7 @@ function MessageBubbleBase({
               <>
                 <span className="h-2.5 w-px bg-line" />
                 <span className={cn('font-medium', confidenceTone(message.confidence).className)}>
-                  {message.grounded
-                    ? `${confidenceTone(message.confidence).label} · ${citations.length} citation${
-                        citations.length === 1 ? '' : 's'
-                      }`
-                    : 'Not grounded'}
+                  {message.grounded ? confidenceTone(message.confidence).label : 'Not grounded'}
                 </span>
               </>
             )}
@@ -169,6 +169,18 @@ function MessageBubbleBase({
           </div>
         )}
 
+        {/* Provenance: always state which subsystem answered */}
+        {!isUser && !streaming && (
+          <div className="mt-2 flex items-center gap-2">
+            <ModeBadge mode={answerMode} grounded={message.grounded} />
+            {citations.length > 0 && (
+              <span className="text-[11px] text-ink-faint">
+                {citations.length} citation{citations.length === 1 ? '' : 's'}
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Sources */}
         {!isUser && !streaming && citations.length > 0 && (
           <Sources citations={citations} onCitationClick={onCitationClick} />
@@ -207,10 +219,18 @@ function Sources({
       {expanded && (
         <div className="grid gap-1.5 sm:grid-cols-2">
           {citations.map((c) => (
-            <button
+            <a
               key={`${c.document_id}-${c.rank}`}
               data-testid="citation-card"
-              onClick={() => onCitationClick?.(c)}
+              href={c.source_type === 'web' ? (c.source_url ?? undefined) : undefined}
+              target={c.source_type === 'web' ? '_blank' : undefined}
+              rel={c.source_type === 'web' ? 'noopener noreferrer' : undefined}
+              onClick={(e) => {
+                if (c.source_type !== 'web') {
+                  e.preventDefault()
+                  onCitationClick?.(c)
+                }
+              }}
               className="group/src flex flex-col gap-1 rounded-xl border border-line bg-surface-1 p-2.5 text-left transition-all hover:border-accent/45 hover:bg-accent-soft/30"
             >
               <div className="flex items-center gap-1.5">
@@ -218,14 +238,20 @@ function Sources({
                   {c.rank}
                 </span>
                 <span className="min-w-0 flex-1 truncate text-[11.5px] font-medium">
-                  {c.filename}
+                  {c.source_type === 'web' ? (c.domain ?? c.filename) : c.filename}
                 </span>
-                {c.page_number != null && (
-                  <span className="chip shrink-0 !px-1.5 !py-0 text-[9px]">p{c.page_number}</span>
+                {c.source_type === 'web' ? (
+                  <span className="chip shrink-0 !border-sky-500/30 !px-1.5 !py-0 text-[9px] !text-sky-600 dark:!text-sky-400">
+                    web
+                  </span>
+                ) : (
+                  c.page_number != null && (
+                    <span className="chip shrink-0 !px-1.5 !py-0 text-[9px]">p{c.page_number}</span>
+                  )
                 )}
               </div>
               <p className="line-clamp-2 text-[11px] leading-snug text-ink-faint">{c.excerpt}</p>
-            </button>
+            </a>
           ))}
         </div>
       )}
@@ -264,6 +290,9 @@ function RetrievedPanel({
                   chunk_id: c.chunk_id,
                   score: c.score,
                   rank: i + 1,
+                  source_type: c.source_type,
+                  source_url: c.source_url,
+                  domain: c.domain,
                 })
               }
               className="block w-full rounded-lg border border-line/70 bg-surface-2/50 p-2 text-left text-[11px] transition-colors hover:border-accent/40"

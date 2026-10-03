@@ -94,6 +94,10 @@ class CitationOut(BaseModel):
     chunk_id: str | None = None
     score: float = 0.0
     rank: int = 0
+    # Provenance: an uploaded file, or a web page that was fetched.
+    source_type: str = "document"  # document | web
+    source_url: str | None = None
+    domain: str | None = None
 
 
 class MessageOut(ORMModel):
@@ -106,6 +110,7 @@ class MessageOut(ORMModel):
     latency_ms: int | None
     created_at: datetime
     citations: list[CitationOut] = []
+    mode: str = "document"
 
 
 class ChatRequest(BaseModel):
@@ -120,6 +125,10 @@ class ChatRequest(BaseModel):
     max_tokens: int | None = Field(default=None, ge=16, le=8192)
     top_k: int | None = Field(default=None, ge=1, le=50)
     document_ids: list[str] | None = None
+    # Per-request overrides of the server defaults.
+    allow_general: bool | None = None
+    allow_web: bool | None = None
+    search_web: bool | None = None
 
     @field_validator("question")
     @classmethod
@@ -139,6 +148,9 @@ class ChatResponse(BaseModel):
     conversation_id: str
     answer: str
     sources: list[str]
+    # Which subsystem produced this answer: document | web | live | general
+    mode: str = "document"
+    mode_reason: str = ""
     citations: list[CitationOut]
     retrieved_chunks: list[dict]
     model: str
@@ -181,6 +193,43 @@ class ConversationUpdate(BaseModel):
     collection_id: str | None = None
     model: str | None = None
     archived: bool | None = None
+
+
+# ---------------- Web ----------------
+class WebFetchRequest(BaseModel):
+    urls: list[str] = Field(min_length=1, max_length=8)
+    collection_id: str | None = None
+
+
+class WebSearchRequest(BaseModel):
+    query: str = Field(min_length=1, max_length=2000)
+    max_results: int = Field(default=5, ge=1, le=20)
+    # Fetch and index the hits so follow-up questions can use them.
+    ingest: bool = False
+    collection_id: str | None = None
+
+
+class WebResultOut(BaseModel):
+    url: str
+    title: str
+    domain: str
+    snippet: str = ""
+    provider: str
+    content_chars: int = 0
+    ingested_document_id: str | None = None
+
+
+class WebResponse(BaseModel):
+    query: str
+    provider: str
+    results: list[WebResultOut] = []
+    errors: list[str] = []
+    ingested: list[str] = []
+
+
+class WebProvidersOut(BaseModel):
+    active: str
+    providers: list[dict]
 
 
 # ---------------- Search / smart features ----------------

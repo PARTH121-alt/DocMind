@@ -33,7 +33,14 @@ export interface Citation {
   chunk_id: string | null
   score: number
   rank: number
+  /** Provenance: an uploaded file, or a web page that was fetched. */
+  source_type: 'document' | 'web'
+  source_url: string | null
+  domain: string | null
 }
+
+/** Which subsystem produced an answer. */
+export type AnswerMode = 'document' | 'web' | 'live' | 'general'
 
 export interface DocumentItem {
   id: string
@@ -79,6 +86,8 @@ export interface Message {
   latency_ms: number | null
   created_at: string
   citations: Citation[]
+  /** Which subsystem answered this turn. */
+  mode: AnswerMode
 }
 
 export interface Conversation {
@@ -111,12 +120,17 @@ export interface RetrievedChunk {
   rerank_score: number | null
   page_number: number | null
   section: string | null
+  source_type: 'document' | 'web'
+  source_url: string | null
+  domain: string | null
 }
 
 export interface ChatResponse {
   conversation_id: string
   answer: string
   sources: string[]
+  mode: AnswerMode
+  mode_reason: string
   citations: Citation[]
   retrieved_chunks: RetrievedChunk[]
   model: string
@@ -214,4 +228,22 @@ export interface DocumentChunk {
   page_number: number | null
   section: string | null
   tokens: number
+}
+
+export interface WebResultItem {
+  url: string
+  title: string
+  domain: string
+  snippet: string
+  provider: string
+  content_chars: number
+  ingested_document_id: string | null
+}
+
+export interface WebResponse {
+  query: string
+  provider: string
+  results: WebResultItem[]
+  errors: string[]
+  ingested: string[]
 }

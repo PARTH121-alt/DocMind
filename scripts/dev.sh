@@ -25,29 +25,39 @@ if [[ ! -d "$ROOT/frontend/node_modules" ]]; then
   exit 1
 fi
 
+# The servers are started with nohup precisely so they outlive this script, so
+# cleanup must NOT run on a normal successful exit - only when the user
+# interrupts it (Ctrl-C / SIGTERM).
 cleanup() {
-  [[ -n "${API_PID:-}" ]] && kill "$API_PID" 2>/dev/null || true
-  [[ -n "${WEB_PID:-}" ]] && kill "$WEB_PID" 2>/dev/null || true
+  trap - INT TERM
+  [[ -n "${API_PID:-}" ]] && kill "$API_PID" 2>/dev/null
+  [[ -n "${WEB_PID:-}" ]] && kill "$WEB_PID" 2>/dev/null
+  echo "stopped DocMind"
 }
-trap cleanup EXIT INT TERM
+trap cleanup INT TERM
 
-# Clear any stale listeners from a previous run, otherwise Vite aborts with
-# "Port 5173 is already in use" and the web app silently never starts.
+# Stop only DocMind's own servers.
+#
+# Matching on a command line alone is unsafe: another project on this machine
+# runs `uvicorn app.main:app` too, so a pattern match would kill an unrelated
+# dev server. Instead, kill a process only when its working directory is inside
+# this project.
 stop_stale() {
-  local pattern="$1"
-  local pids
-  pids="$(pgrep -f "$pattern" || true)"
-  if [[ -n "$pids" ]]; then
-    echo "stopping stale process: $pattern"
-    # shellcheck disable=SC2086
-    kill $pids 2>/dev/null || true
-    sleep 1
-    # shellcheck disable=SC2086
-    kill -9 $pids 2>/dev/null || true
-  fi
+  local label="$1"
+  local pids cwd
+  for pid in $(pgrep -f "uvicorn|vite" 2>/dev/null); do
+    cwd="$(lsof -a -p "$pid" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p')"
+    case "$cwd" in
+      "$ROOT"/*) ;;
+      *) continue ;;
+    esac
+    echo "stopping stale DocMind $label (pid $pid, cwd $cwd)"
+    kill "$pid" 2>/dev/null || true
+  done
 }
-stop_stale "uvicorn app.main:app"
-stop_stale "vite --host"
+stop_stale "api"
+stop_stale "web"
+sleep 1
 
 echo "starting api on http://$API_HOST:$API_PORT"
 (

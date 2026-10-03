@@ -31,12 +31,16 @@ def search(
     document_ids: Sequence[str] | None = None,
     embedding_model: str | None = None,
     small_model: bool = False,
+    kinds: Sequence[str] | None = None,
 ) -> list[RetrievedChunk]:
     """Retrieve the most relevant chunks for a query within the user's scope.
 
     `small_model` caps how many passages are returned. Sub-1B generators are
     measurably derailed by competing numbers in neighbouring passages, so they
     receive a single best passage instead of several.
+
+    `kinds` restricts results to a provenance class ("document" / "web") so a
+    web-sourced question does not accidentally cite an unrelated upload.
     """
     top_k = top_k or settings.top_k
     limit = top_k
@@ -72,6 +76,10 @@ def search(
             continue
         if allowed_docs is not None and payload.get("document_id") not in allowed_docs:
             continue
+        if kinds is not None:
+            kind = payload.get("source_kind") or payload.get("source_type") or "document"
+            if kind not in kinds:
+                continue
 
         results.append(
             RetrievedChunk(
@@ -83,6 +91,8 @@ def search(
                 page_number=payload.get("page_number"),
                 section=payload.get("section"),
                 collection_id=payload.get("collection_id"),
+                source_type=payload.get("source_kind") or payload.get("source_type") or "document",
+                source_url=payload.get("source_url"),
             )
         )
         if len(results) >= _overfetch(limit):

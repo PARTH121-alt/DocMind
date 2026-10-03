@@ -76,6 +76,10 @@ export function EmptyState({ onAsk }: { onAsk: (question: string) => void }) {
           Upload your files and ask questions. Your AI assistant will find the relevant
           information and explain it with sources.
         </p>
+        <p className="mx-auto mt-2 max-w-lg text-[13px] text-ink-faint">
+          You can also paste a URL to analyse a website, ask about the live web, or ask
+          anything general - every answer is labelled with where it came from.
+        </p>
 
         <div className="mt-7 flex flex-wrap items-center justify-center gap-2.5">
           {hasIndexed ? (

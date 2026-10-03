@@ -193,6 +193,8 @@ class Message(Base):
     latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     grounded: Mapped[bool] = mapped_column(Boolean, default=False)
     confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # Which subsystem answered: document | web | live | general
+    mode: Mapped[str] = mapped_column(String(20), default="document")
     meta: Mapped[dict] = mapped_column(JSON, default=dict)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
@@ -218,6 +220,9 @@ class Citation(Base):
     excerpt: Mapped[str] = mapped_column(Text)
     score: Mapped[float] = mapped_column(Float, default=0.0)
     rank: Mapped[int] = mapped_column(Integer, default=0)
+    # Provenance: "document" for uploads, "web" for fetched pages.
+    source_type: Mapped[str] = mapped_column(String(20), default="document")
+    source_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
 
     message: Mapped[Message] = relationship(back_populates="citations")
 

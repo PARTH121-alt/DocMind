@@ -234,6 +234,11 @@ def check(label: str, ok: bool, detail: str = "") -> None:
         failures.append(label)
 
 
+def js(body: str) -> str:
+    """Wrap a JS body so Chrome evaluates it as an expression."""
+    return f"(function(){{ {body} return true }})()"
+
+
 def main() -> int:
     shots = Path(__file__).resolve().parents[1] / "storage" / "screenshots"
     shots.mkdir(parents=True, exist_ok=True)
@@ -420,6 +425,64 @@ def main() -> int:
             body[:300],
         )
         chrome.screenshot(shots / "08-preview.png")
+
+        # ---- Live / general answers and their provenance badges ----
+        print()
+        print("-" * 60)
+        print("LIVE + GENERAL MODES")
+        print("-" * 60)
+
+        def badges() -> list[str]:
+            """Read the provenance badge titles currently on screen."""
+            return ws.evaluate(
+                "[...document.querySelectorAll('span[title]')]"
+                ".map(e=>e.getAttribute('title'))"
+                ".filter(t=>t && (t.indexOf('Grounded in passages')>=0"
+                "|| t.indexOf('fetched live')>=0"
+                "|| t.indexOf('system clock')>=0"
+                "|| t.indexOf('own knowledge')>=0))"
+            ) or []
+
+        def ask(q: str, wait_s: int = 60) -> None:
+            ws.evaluate(
+                js(
+                    "var ta=document.querySelector('textarea');"
+                    "var d=Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value');"
+                    f"d.set.call(ta,{q!r});"
+                    "ta.dispatchEvent(new Event('input',{bubbles:true}));"
+                )
+            )
+            time.sleep(0.4)
+            ws.evaluate(
+                js(
+                    "var b=[...document.querySelectorAll('button')]"
+                    ".find(b=>b.getAttribute('aria-label')==='Send message');"
+                    "if(b) b.click();"
+                )
+            )
+            for _ in range(wait_s):
+                time.sleep(1)
+                if badges():
+                    return
+            return
+
+        ask("what is today's date", wait_s=25)
+        found = badges()
+        check(
+            "live date answered with a Live (system clock) badge",
+            any("system clock" in t for t in found),
+            f"badges={found}",
+        )
+        chrome.screenshot(shots / "16-live-date.png")
+
+        ask("hi", wait_s=45)
+        found = badges()
+        check(
+            "greeting answered with a General knowledge badge",
+            any("own knowledge" in t for t in found),
+            f"badges={found}",
+        )
+        chrome.screenshot(shots / "17-general.png")
 
         # ---- Navigation views ----
         for label, needle in [
