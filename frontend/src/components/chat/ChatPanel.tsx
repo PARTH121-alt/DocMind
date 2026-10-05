@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useApp } from '../../lib/AppContext'
 import * as api from '../../lib/api'
-import type { AnswerMode, Citation, RetrievedChunk } from '../../lib/types'
+import type { AnswerMode, Citation, EntityCard, RetrievedChunk } from '../../lib/types'
 import { copyToClipboard, downloadText } from '../../lib/utils'
 import { MessageBubble } from './MessageBubble'
 import { EmptyState } from './EmptyState'
@@ -33,6 +33,7 @@ interface StreamingState {
   confidence: number
   sources: string[]
   mode: AnswerMode
+  entity: EntityCard | null
 }
 
 export function ChatPanel() {
@@ -84,12 +85,13 @@ export function ChatPanel() {
               created_at: new Date().toISOString(),
               citations: [],
               mode: 'document' as const,
+              entity: null,
             },
           ],
         })
       }
 
-      setStreaming({ text: '', citations: [], retrieved: [], confidence: 0, sources: [], mode: 'document' })
+      setStreaming({ text: '', citations: [], retrieved: [], confidence: 0, sources: [], mode: 'document', entity: null })
 
       const stop = api.chat.stream(
         {
@@ -125,6 +127,7 @@ export function ChatPanel() {
                 ...s,
                 mode: nextMode,
                 sources: (data.sources as string[]) ?? s.sources,
+                entity: (data.entity as EntityCard | null) ?? null,
                 text: isRefusal ? ((data.answer as string) || REFUSAL_FALLBACK) : s.text,
               }
             })
@@ -228,14 +231,16 @@ export function ChatPanel() {
                           created_at: new Date().toISOString(),
                           citations: streaming.citations,
                           mode: streaming.mode,
+                          entity: streaming.entity,
                         }}
                         streaming
                         citations={streaming.citations}
                         retrieved={streaming.retrieved}
                         mode={streaming.mode}
+                        entity={streaming.entity}
                       />
                     ) : (
-                      <ThinkingIndicator sources={streaming.sources} />
+                      <ThinkingIndicator sources={streaming.sources} mode={streaming.mode} />
                     )}
                   </div>
                 </div>
@@ -276,7 +281,21 @@ export function ChatPanel() {
   )
 }
 
-function ThinkingIndicator({ sources }: { sources: string[] }) {
+const PENDING_TEXT: Record<string, string> = {
+  document: 'Searching your documents',
+  entity: 'Looking up structured data',
+  web: 'Searching the web',
+  live: 'Checking the clock',
+  general: 'Thinking',
+}
+
+function ThinkingIndicator({
+  sources,
+  mode,
+}: {
+  sources: string[]
+  mode: AnswerMode
+}) {
   const [dots, setDots] = useState(0)
   useEffect(() => {
     const t = setInterval(() => setDots((d) => (d + 1) % 4), 400)
@@ -288,12 +307,14 @@ function ThinkingIndicator({ sources }: { sources: string[] }) {
       <div className="flex items-center gap-2 text-[13px] text-ink-muted">
         <IconSpinner className="text-sm text-accent" />
         <span>
-          Searching your documents
+          {PENDING_TEXT[mode] ?? PENDING_TEXT.document}
           <span className="inline-block w-4 text-left">{'.'.repeat(dots)}</span>
         </span>
       </div>
       {sources.length > 0 && (
-        <p className="mt-1.5 text-[11px] text-ink-faint">Found passages in {sources.join(', ')}</p>
+        <p className="mt-1.5 text-[11px] text-ink-faint">
+          {mode === 'web' ? 'From' : 'Found passages in'} {sources.join(', ')}
+        </p>
       )}
     </div>
   )

@@ -103,7 +103,7 @@ back to the local model rather than failing the request.
 
 ---
 
-## Four answer sources, always labelled
+## Five answer sources, always labelled
 
 Every reply states where it came from. Nothing is ever presented as
 document-grounded unless it is.
@@ -111,12 +111,45 @@ document-grounded unless it is.
 | Badge | Source | Grounded? | How it works |
 |---|---|---|---|
 | 🟢 **From your documents** | Your uploads | yes | Retrieval + rerank + grounding check; citations link to file and page |
-| 🔵 **From the web** | Pages fetched live | yes, if supported | Search or a pasted URL, then the same grounding check; citations link to the URL |
+| 🌐 **From the web** | Pages fetched live | yes, if supported | Search or a pasted URL, then the same grounding check; citations link to the URL |
+| 🗂️ **Structured data** | Wikidata | yes | Real-world entities as a fact card (capital, population, founder…) |
 | 🟣 **Live** | Server clock | n/a | Date and time computed on the server — **never** asked of the model, which has no clock |
+| 🔵 **Structured data** | Wikidata | yes | Real-world entities rendered as a fact card, not prose |
 | 🟠 **General knowledge** | The model's own weights | **no** | Greetings and general questions, clearly marked as unsourced |
 
 Ask "hi", "what is today's date", "who is the current president of France",
 or paste a URL — the router picks the right subsystem before retrieval runs.
+
+### Structured entity answers
+
+Ask about a real-world entity and it returns **structured facts** rather than a
+paragraph — the kind of output that is easier to scan and impossible for the
+model to garble, because it is assembled from Wikidata directly instead of
+being generated:
+
+```
+What is the capital of France?   ->  The capital of **France** is **Paris**.
+                                    [card] Capital: Paris  (wikidata.org/wiki/Q142)
+
+Tell me about Japan              ->  [card] Capital, official language, borders,
+                                       continent, population, area
+
+who is Elon Musk                 ->  [card] occupation, born, place of birth,
+                                       citizenship, affiliation
+```
+
+The question is parsed into an **entity** and an optional **property**, so
+"what is the capital of France" looks up `France` (not the phrase "capital of
+France", which matches the wrong Wikidata item) and leads with the capital.
+
+Entity lookups only trigger when you have **no documents** to answer from — a
+question about your own files always wins. Questions referring to your material
+("summarise my PDF", "what does chapter 3 say") are never treated as entity
+lookups.
+
+Wikidata is throttled and cached in-process, because Wikimedia rate-limits
+aggressive clients; tune with `WIKIDATA_MIN_INTERVAL_MS` and
+`WIKIDATA_CACHE_TTL_S`.
 
 ### Web search
 
@@ -250,6 +283,7 @@ the *desired* outcome.
 | `contract_test.py` | Route/handler/schema consistency; no secret in any response |
 | `refusal_test.py` | Sentinel handling, grounding checks, prompt-profile selection |
 | `live_web_test.py` | Clock answers, SSRF guards, intent routing, provider fallbacks |
+| `entity_test.py` | Entity/property extraction, document-question rejection, fact formatting, throttling |
 | `chunking_test.py` | Cleaning artefacts; chunk invariants (page anchoring, offsets, overlap) |
 | `vectorstore_test.py` | FAISS add/search/delete, and that deletions keep ids and payloads aligned |
 | `e2e_pipeline_test.py` | Real extraction → embedding → FAISS → generation, plus both defences |
@@ -357,7 +391,13 @@ scripts/       dev.sh, test suites, diagnostics
   reporting until you add a Brave/Tavily/Serper key.
 - **Keyed search providers are unverified.** Brave, Tavily and Serper are
   implemented against their published APIs but could not be exercised without
-  keys in this environment; Wikipedia and direct URL fetching are verified live.
+  keys in this environment; Wikipedia, Wikidata and direct URL fetching are
+  verified live.
+- **Wikidata coverage is uneven.** It is excellent for countries, people,
+  companies and species, but many niche topics simply have no item. A miss is
+  reported honestly rather than guessed at.
+- **Entity facts can be stale or contested.** Wikidata is crowd-edited; a value
+  is only as good as its most recent revision.
 - **Small-model context.** Sub-1B models are given a single best passage
   (`SMALL_MODEL_TOP_K=1`) because they are measurably derailed by competing figures —
   8/8 correct with one passage, 0/8 with two on the same question. Larger models use

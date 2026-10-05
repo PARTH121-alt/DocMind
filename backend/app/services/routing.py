@@ -3,6 +3,7 @@
 Decides, before retrieval runs, which subsystem should answer:
 
 ``live``     deterministic server facts (date/time) - never the model
+``entity``   a structured lookup of a real-world entity (Wikidata)
 ``web``      the user wants the open web (URLs, "latest", news, ...)
 ``document`` the question is about the uploaded documents
 ``general``  ordinary conversation or general knowledge, answered by the model
@@ -23,6 +24,7 @@ from app.core.config import settings
 
 class QueryMode(str, enum.Enum):
     live = "live"
+    entity = "entity"
     web = "web"
     document = "document"
     general = "general"
@@ -113,11 +115,22 @@ def route(
     if detect_live(text):
         return RouteDecision(QueryMode.live, "matches a live time/date query", text, [])
 
-    # 2. Explicit URLs mean "read these".
+    # 2. A structured lookup of a real-world entity, when there are no
+    #    documents that could answer it better. Document-backed questions still
+    #    win below, because a user's own file beats a public encyclopedia.
+    if not has_documents:
+        from app.services.entities.extract import parse as parse_entity
+
+        if parse_entity(text):
+            return RouteDecision(
+                QueryMode.entity, "question is about a real-world entity", text, []
+            )
+
+    # 3. Explicit URLs mean "read these".
     if urls and allow_web:
         return RouteDecision(QueryMode.web, f"{len(urls)} URL(s) supplied", text, urls)
 
-    # 3. Explicit web signals.
+    # 4. Explicit web signals.
     if wants_web(text):
         if allow_web:
             return RouteDecision(QueryMode.web, "question asks for live web information", text, [])
@@ -128,14 +141,14 @@ def route(
             [],
         )
 
-    # 4. Small talk and capability questions.
+    # 5. Small talk and capability questions.
     # Routing only reports intent; whether general answers are permitted is
     # enforced by the resolver, which returns a plain notice instead of
     # calling the model when they are switched off.
     if is_greeting(text) or is_help(text):
         return RouteDecision(QueryMode.general, "conversation, not a document question", text, [])
 
-    # 5. Default to the user's documents - that is what the product is for.
+    # 6. Default to the user's documents - that is what the product is for.
     if has_documents:
         return RouteDecision(QueryMode.document, "default document question", text, [])
 

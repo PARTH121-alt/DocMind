@@ -103,6 +103,14 @@ class Settings(BaseSettings):
     # answer from ever being presented as sourced.
     relevance_threshold: float = 0.42
 
+    # ---- Structured entity data (Wikidata) ----
+    # Wikimedia rate-limits unauthenticated clients aggressively, so requests
+    # are throttled and cached in-process. Set to 0 to disable throttling.
+    wikidata_min_interval_ms: int = 350
+    wikidata_cache_ttl_s: int = 3600
+    wikidata_cache_max: int = 512
+    wikidata_timeout_s: float = 20.0
+
     # ---- Web search / live answers ----
     # Keyed providers are used when configured; Wikipedia is the tokenless
     # default so web answers work immediately.

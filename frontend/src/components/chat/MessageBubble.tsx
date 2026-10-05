@@ -1,7 +1,7 @@
 /** A single chat message: user bubble or assistant answer with sources. */
 
 import { memo, useState } from 'react'
-import type { AnswerMode, Citation, Message, RetrievedChunk } from '../../lib/types'
+import type { AnswerMode, Citation, EntityCard, Message, RetrievedChunk } from '../../lib/types'
 import {
   cn,
   confidenceTone,
@@ -11,6 +11,7 @@ import {
 } from '../../lib/utils'
 import { Markdown } from './Markdown'
 import { ModeBadge } from './ModeBadge'
+import { EntityCardView } from './EntityCardView'
 import {
   IconAlert,
   IconCheck,
@@ -26,6 +27,7 @@ interface Props {
   citations?: Citation[]
   retrieved?: RetrievedChunk[]
   mode?: AnswerMode
+  entity?: EntityCard | null
   onCitationClick?: (citation: Citation) => void
   onRegenerate?: () => void
 }
@@ -36,10 +38,14 @@ function MessageBubbleBase({
   citations = [],
   retrieved = [],
   mode,
+  entity,
   onCitationClick,
   onRegenerate,
 }: Props) {
   const answerMode: AnswerMode = mode ?? message.mode ?? 'document'
+  // Prefer the live payload; fall back to the persisted one so reloaded
+  // history still shows the card.
+  const entityPayload = entity ?? message.entity ?? null
   const [copied, setCopied] = useState(false)
   const isUser = message.role === 'user'
 
@@ -87,6 +93,7 @@ function MessageBubbleBase({
                   if (hit && onCitationClick) onCitationClick(hit)
                 }}
               />
+              {entityPayload && <EntityCardView entity={entityPayload} />}
             </div>
           )}
 

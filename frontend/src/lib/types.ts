@@ -40,7 +40,7 @@ export interface Citation {
 }
 
 /** Which subsystem produced an answer. */
-export type AnswerMode = 'document' | 'web' | 'live' | 'general'
+export type AnswerMode = 'document' | 'web' | 'live' | 'entity' | 'general'
 
 export interface DocumentItem {
   id: string
@@ -88,6 +88,8 @@ export interface Message {
   citations: Citation[]
   /** Which subsystem answered this turn. */
   mode: AnswerMode
+  /** Structured entity payload for entity lookups. */
+  entity: EntityCard | null
 }
 
 export interface Conversation {
@@ -131,6 +133,7 @@ export interface ChatResponse {
   sources: string[]
   mode: AnswerMode
   mode_reason: string
+  entity: EntityCard | null
   citations: Citation[]
   retrieved_chunks: RetrievedChunk[]
   model: string
@@ -246,4 +249,21 @@ export interface WebResponse {
   results: WebResultItem[]
   errors: string[]
   ingested: string[]
+}
+
+export interface EntityFact {
+  label: string
+  value: string
+  entity_ids: string[]
+  url: string | null
+}
+
+export interface EntityCard {
+  qid: string
+  label: string
+  description: string
+  wikipedia_url: string | null
+  image: string | null
+  aliases: string[]
+  facts: EntityFact[]
 }

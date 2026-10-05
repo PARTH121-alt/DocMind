@@ -24,6 +24,18 @@ const META: Record<
       </svg>
     ),
   },
+  entity: {
+    label: 'Structured data',
+    detail: 'Facts from Wikidata, the structured database behind Wikipedia',
+    className: 'border-teal-500/35 text-teal-600 dark:text-teal-400',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" width="11" height="11">
+        <ellipse cx="12" cy="6" rx="8" ry="3" />
+        <path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6" />
+        <path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" />
+      </svg>
+    ),
+  },
   web: {
     label: 'From the web',
     detail: 'Answered using pages fetched live from the internet',

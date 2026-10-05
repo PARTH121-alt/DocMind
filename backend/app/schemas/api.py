@@ -111,6 +111,8 @@ class MessageOut(ORMModel):
     created_at: datetime
     citations: list[CitationOut] = []
     mode: str = "document"
+    # Structured entity payload, when the answer was an entity lookup.
+    entity: EntityCardOut | None = None
 
 
 class ChatRequest(BaseModel):
@@ -151,6 +153,8 @@ class ChatResponse(BaseModel):
     # Which subsystem produced this answer: document | web | live | general
     mode: str = "document"
     mode_reason: str = ""
+    # Present for entity lookups.
+    entity: EntityCardOut | None = None
     citations: list[CitationOut]
     retrieved_chunks: list[dict]
     model: str
@@ -193,6 +197,24 @@ class ConversationUpdate(BaseModel):
     collection_id: str | None = None
     model: str | None = None
     archived: bool | None = None
+
+
+# ---------------- Structured entity data ----------------
+class EntityFactOut(BaseModel):
+    label: str
+    value: str
+    entity_ids: list[str] = []
+    url: str | None = None
+
+
+class EntityCardOut(BaseModel):
+    qid: str
+    label: str
+    description: str = ""
+    wikipedia_url: str | None = None
+    image: str | None = None
+    aliases: list[str] = []
+    facts: list[EntityFactOut] = []
 
 
 # ---------------- Web ----------------

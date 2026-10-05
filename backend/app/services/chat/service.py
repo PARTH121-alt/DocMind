@@ -230,8 +230,13 @@ async def save_assistant_message(
     grounded: bool,
     confidence: float,
     mode: str = "document",
+    entity: dict | None = None,
 ) -> Message:
-    """Persist the assistant turn together with its citations."""
+    """Persist the assistant turn together with its citations.
+
+    `entity` is stored in `meta` so a reloaded conversation still renders the
+    structured card rather than degrading to the plain Markdown fallback.
+    """
     used = _keep_cited_only(chunks, answer) if grounded else []
     citations = build_citations(used) if grounded else []
 
@@ -246,6 +251,7 @@ async def save_assistant_message(
         confidence=confidence,
         latency_ms=latency_ms,
         mode=mode,
+        meta={"entity": entity} if entity else {},
     )
     db.add(msg)
     await db.flush()
