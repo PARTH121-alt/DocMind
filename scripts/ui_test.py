@@ -444,6 +444,13 @@ def main() -> int:
             ) or []
 
         def ask(q: str, wait_s: int = 60) -> None:
+            """Send a question and wait for its own answer to finish.
+
+            The wait is on the badge *count* rising, not on badges existing:
+            earlier answers stay on screen, so a non-empty check returns
+            immediately and the assertion then reads the previous reply.
+            """
+            before = len(badges())
             ws.evaluate(
                 js(
                     "var ta=document.querySelector('textarea');"
@@ -462,7 +469,7 @@ def main() -> int:
             )
             for _ in range(wait_s):
                 time.sleep(1)
-                if badges():
+                if len(badges()) > before:
                     return
             return
 
@@ -483,6 +490,74 @@ def main() -> int:
             f"badges={found}",
         )
         chrome.screenshot(shots / "17-general.png")
+
+        # ---- Model picker: popular vendors, grouped and honest about keys ----
+        ws.evaluate(
+            """
+            (() => {
+              const btns = [...document.querySelectorAll('button')];
+              btns.find(b => (b.title || '') === 'Change model')?.click();
+              return true;
+            })()
+            """
+        )
+        time.sleep(1.0)
+        picker = ws.evaluate("document.body.innerText") or ""
+        # innerText reflects CSS text-transform, and these headings are
+        # uppercased, so compare case-insensitively.
+        picker_lc = picker.lower()
+        for vendor, label in [
+            ("openai", "chatgpt"),
+            ("anthropic", "claude"),
+            ("google", "gemini"),
+            ("hugging face", "gemma"),
+        ]:
+            check(
+                f"model picker lists {label} under {vendor}",
+                vendor in picker_lc and label in picker_lc,
+                picker[:200],
+            )
+        # Unconfigured vendors must be visibly marked, not silently selectable.
+        check(
+            "unconfigured vendor groups say 'not configured'",
+            picker_lc.count("not configured") >= 3,
+            f"count={picker_lc.count('not configured')}",
+        )
+        disabled = ws.evaluate(
+            "document.querySelectorAll('button[disabled]').length"
+        )
+        check("unconfigured models are disabled", (disabled or 0) > 0, f"disabled={disabled}")
+        chrome.screenshot(shots / "20-model-picker.png")
+        ws.evaluate(
+            """
+            (() => {
+              const b = [...document.querySelectorAll('button')].find(x => x.getAttribute('aria-label') === 'Close model picker');
+              b?.click();
+              return true;
+            })()
+            """
+        )
+        time.sleep(0.5)
+
+        # Models view should surface vendor credentials, not just HF.
+        ws.evaluate(
+            """
+            (() => {
+              const btns = [...document.querySelectorAll('button')];
+              btns.find(b => b.textContent.trim().startsWith('Models'))?.click();
+              return true;
+            })()
+            """
+        )
+        time.sleep(1.5)
+        models_view = ws.evaluate("document.body.innerText") or ""
+        for needle in ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "ChatGPT"]:
+            check(
+                f"Models view names {needle}",
+                needle.lower() in models_view.lower(),
+                models_view[:160],
+            )
+        chrome.screenshot(shots / "21-models-providers.png")
 
         # ---- Navigation views ----
         for label, needle in [

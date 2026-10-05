@@ -128,6 +128,25 @@ class Settings(BaseSettings):
     # Permit fetching user-supplied URLs into the knowledge base.
     allow_web_fetch: bool = True
 
+    # ---- Hosted model providers (closed models) ----
+    # Open-weight checkpoints come from the Hugging Face Inference API (see
+    # `hf_token`). ChatGPT, Claude and Gemini are not distributed through that
+    # hub at all, so each vendor needs its own credential. A provider with no
+    # key is shown in the model selector as unavailable instead of erroring.
+    openai_api_key: str | None = None
+    #: Point this at any OpenAI-compatible endpoint (Groq, DeepSeek, Mistral,
+    #: xAI, Together, OpenRouter, or a local llama.cpp server) to reuse the
+    #: OpenAI adapter for it.
+    openai_base_url: str | None = None
+    anthropic_api_key: str | None = None
+    anthropic_base_url: str | None = None
+    gemini_api_key: str | None = None
+    gemini_base_url: str | None = None
+    hosted_timeout_s: float = 90.0
+    hosted_max_tokens: int = 700
+    hosted_temperature: float = 0.2
+    hosted_top_p: float = 0.9
+
     # ---- Datasets / evaluation ----
     enable_datasets: bool = True
     hf_eval_dataset: str = "rajpurkar/squad"

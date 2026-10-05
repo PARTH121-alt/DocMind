@@ -103,6 +103,44 @@ back to the local model rather than failing the request.
 
 ---
 
+## Popular models: ChatGPT, Claude, Gemini, and their open counterparts
+
+The model picker is grouped by vendor, and every entry states whether it is
+actually usable:
+
+| Group | Models | Needs |
+|---|---|---|
+| **On this machine** | Qwen2.5-0.5B (int4 ONNX) | nothing |
+| **Open weights · Hugging Face** | Gemma 3, Llama 3.3, Mistral, DeepSeek R1, Qwen3 | `HF_TOKEN` |
+| **OpenAI · ChatGPT** | GPT-4o, GPT-4o mini | `OPENAI_API_KEY` |
+| **Anthropic · Claude** | Claude Sonnet 4.5, Haiku 4.5 | `ANTHROPIC_API_KEY` |
+| **Google · Gemini** | Gemini 2.0 Flash, 1.5 Pro | `GEMINI_API_KEY` |
+
+**ChatGPT, Claude and Gemini are not available through the Hugging Face hub.**
+`openai/gpt-4o-mini` and `anthropic/claude-3-5-sonnet` both return 401 from the
+HF API - they are not distributed there. Each vendor requires its own
+credential, so each gets a provider adapter.
+
+Gemma is Google's *open* model family, the one Gemini is built from, and it does
+run through `HF_TOKEN`. It is not Gemini.
+
+### Design notes
+
+- **Three adapters, not six integrations.** The OpenAI adapter speaks the
+  OpenAI-compatible REST shape, so pointing `OPENAI_BASE_URL` at Groq, DeepSeek,
+  Mistral, xAI, Together, OpenRouter or a local llama.cpp server reuses it
+  verbatim.
+- **Unconfigured means visible, not broken.** A provider with no key is listed
+  greyed out naming the variable it needs, and the backend refuses to run rather
+  than silently answering with a different model. Getting an answer to a
+  different question than the one asked is the worse failure.
+- **The vendors differ in ways that matter.** Claude takes `system` as a
+  top-level field and requires `max_tokens`; Gemini calls the assistant role
+  `model` and uses `systemInstruction`. These are handled per adapter rather
+  than assumed uniform.
+- **Closed models send your documents to the vendor** for that request. The
+  picker says so. Use a local or open-weight model to keep everything on-device.
+
 ## Five answer sources, always labelled
 
 Every reply states where it came from. Nothing is ever presented as
@@ -284,6 +322,7 @@ the *desired* outcome.
 | `refusal_test.py` | Sentinel handling, grounding checks, prompt-profile selection |
 | `live_web_test.py` | Clock answers, SSRF guards, intent routing, provider fallbacks |
 | `entity_test.py` | Entity/property extraction, document-question rejection, fact formatting, throttling |
+| `provider_test.py` | Hosted provider adapters against mock servers reproducing each vendor's wire format; missing-key and malformed-payload handling |
 | `chunking_test.py` | Cleaning artefacts; chunk invariants (page anchoring, offsets, overlap) |
 | `vectorstore_test.py` | FAISS add/search/delete, and that deletions keep ids and payloads aligned |
 | `e2e_pipeline_test.py` | Real extraction → embedding → FAISS → generation, plus both defences |

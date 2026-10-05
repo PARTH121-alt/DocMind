@@ -25,6 +25,7 @@ run "text cleaning + chunking" "$PY" scripts/chunking_test.py
 run "vector store (faiss)" "$PY" scripts/vectorstore_test.py
 run "live facts + web layer" "$PY" scripts/live_web_test.py
 run "structured entities (wikidata)" "$PY" scripts/entity_test.py
+run "hosted model providers" "$PY" scripts/provider_test.py
 run "rag pipeline (real models)" "$PY" scripts/e2e_pipeline_test.py
 run "live HTTP API" "$PY" scripts/api_test.py
 run "frontend typecheck" bash -c "cd frontend && ./node_modules/.bin/tsc --noEmit"

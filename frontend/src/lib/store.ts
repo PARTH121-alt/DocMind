@@ -189,11 +189,19 @@ export function useAppState() {
 
   // ---- Boot -------------------------------------------------------------
   const refreshAll = useCallback(async () => {
-    const [collections, conversations, docs] = await Promise.allSettled([
+    const [collections, conversations, docs, models] = await Promise.allSettled([
       api.collections.list(),
       api.conversations.list(),
       api.documents.list({ collection_id: state.activeCollectionId ?? undefined }),
+      // Fetched here as well as at boot: signing in or registering does not
+      // reload the page, so boot's copy never runs and the model selector
+      // would otherwise render empty for the whole session.
+      api.meta.models(),
     ])
+
+    if (models.status === 'fulfilled') {
+      dispatch({ type: 'models/set', models: models.value })
+    }
 
     if (collections.status === 'fulfilled') {
       dispatch({ type: 'collections/set', collections: collections.value })
@@ -234,10 +242,6 @@ export function useAppState() {
         if (cancelled) return
         dispatch({ type: 'boot/done', user })
         await refreshAll()
-        api.meta
-          .models()
-          .then((m) => !cancelled && dispatch({ type: 'models/set', models: m }))
-          .catch(() => undefined)
       } catch {
         if (!cancelled) dispatch({ type: 'boot/done', user: null })
       }

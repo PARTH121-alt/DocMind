@@ -182,10 +182,35 @@ class ChatModel:
 
     @staticmethod
     def _resolve_backend(model_id: str) -> str:
-        """Local model ids use `repo::file`; anything else needs the API."""
+        """Map a model id to the backend that can serve it.
+
+        Catalogued ids win, because hosted model ids are ambiguous on their
+        own: `anthropic/claude-sonnet-4-5` looks like a Hugging Face repo path
+        but is an Anthropic API model. Local ids carry a `repo::file` marker.
+        """
+        from app.services.ai.registry import generation_models
+
         if "::" in model_id:
             return "local"
+        for descriptor in generation_models():
+            if descriptor.id == model_id:
+                return descriptor.backend
         return settings.generation_backend
+
+    @property
+    def hosted_provider(self):
+        """The vendor adapter for this model, or None for local/HF backends."""
+        if self.backend not in ("openai", "anthropic", "gemini"):
+            return None
+        from app.services.ai.providers.anthropic_provider import AnthropicProvider
+        from app.services.ai.providers.gemini_provider import GeminiProvider
+        from app.services.ai.providers.openai_provider import OpenAIProvider
+
+        return {
+            "openai": OpenAIProvider,
+            "anthropic": AnthropicProvider,
+            "gemini": GeminiProvider,
+        }[self.backend]()
 
     def select(self, model_id: str | None) -> ChatModel:
         """Return a ChatModel bound to the requested model, keeping the default."""
@@ -247,6 +272,26 @@ class ChatModel:
                 history or [],
                 full_user,
                 max_new_tokens=max_new_tokens,
+                temperature=temperature,
+                top_p=top_p,
+            )
+            return
+
+        provider = self.hosted_provider
+        if provider is not None:
+            if not provider.is_configured():
+                # Falling back silently would be worse than saying why: the
+                # user asked for a specific model and would get a different one.
+                raise RuntimeError(
+                    f"{self.label} needs a credential that is not configured "
+                    f"({provider.unavailable_reason()})"
+                )
+            yield from provider.stream(
+                self.model_id,
+                system_prompt,
+                history or [],
+                full_user,
+                max_tokens=max_new_tokens,
                 temperature=temperature,
                 top_p=top_p,
             )

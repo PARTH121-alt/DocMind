@@ -1,8 +1,9 @@
-/** Model catalogue: shows every configured Hugging Face model and backend. */
+/** Model catalogue: every generation backend, grouped by vendor, plus the
+ *  active configuration and which provider credentials are present. */
 
 import { useApp } from '../../lib/AppContext'
 import { cn } from '../../lib/utils'
-import type { ModelDescriptor } from '../../lib/types'
+import type { ModelDescriptor, ProviderStatus } from '../../lib/types'
 import { IconCpu, IconInfo, IconLayers, IconSparkle } from '../ui/Icons'
 
 const TIER_LABELS: Record<string, string> = {
@@ -10,6 +11,33 @@ const TIER_LABELS: Record<string, string> = {
   balanced: 'Balanced',
   high_quality: 'High Quality',
 }
+
+/** Closed-model vendors, each with the environment variable it needs. */
+const PROVIDER_KEYS: {
+  backend: keyof ProviderStatus
+  label: string
+  variable: string
+  note: string
+}[] = [
+  {
+    backend: 'openai',
+    label: 'OpenAI · ChatGPT',
+    variable: 'OPENAI_API_KEY',
+    note: 'GPT-4o and GPT-4o mini. The same adapter serves any OpenAI-compatible endpoint.',
+  },
+  {
+    backend: 'anthropic',
+    label: 'Anthropic · Claude',
+    variable: 'ANTHROPIC_API_KEY',
+    note: 'Claude Sonnet and Haiku, via the Messages API.',
+  },
+  {
+    backend: 'gemini',
+    label: 'Google · Gemini',
+    variable: 'GEMINI_API_KEY',
+    note: 'Gemini Flash and Pro, via generateContent.',
+  },
+]
 
 export function ModelsView() {
   const { state } = useApp()
@@ -53,6 +81,48 @@ export function ModelsView() {
                 tone={models.active.hf_token_configured ? 'good' : 'warn'}
               />
             </div>
+
+            {/* Closed-model vendors each need their own credential; none of
+                them are reachable through the Hugging Face hub. */}
+            {models.providers && (
+              <div className="mt-3 border-t border-line pt-3">
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-ink-faint">
+                  Closed-model providers
+                </p>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {PROVIDER_KEYS.map(({ backend, label, variable, note }) => {
+                    const ready = models.providers?.[backend] ?? false
+                    return (
+                      <div key={backend} className="card p-3">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={cn(
+                              'h-1.5 w-1.5 rounded-full',
+                              ready ? 'bg-emerald-500' : 'bg-ink-faint/50',
+                            )}
+                          />
+                          <p className="text-[12.5px] font-medium">{label}</p>
+                        </div>
+                        <p className="mt-1 text-[11px] leading-snug text-ink-faint">{note}</p>
+                        <p
+                          className={cn(
+                            'mt-1.5 font-mono text-[10.5px]',
+                            ready ? 'text-emerald-600 dark:text-emerald-400' : 'text-ink-faint',
+                          )}
+                        >
+                          {variable} {ready ? '· set' : '· not set'}
+                        </p>
+                      </div>
+                    )
+                  })}
+                </div>
+                <p className="mt-2.5 text-[11.5px] leading-relaxed text-ink-faint">
+                  ChatGPT, Claude and Gemini are not distributed on the Hugging Face hub, so they
+                  need their own vendor keys. The app runs fully on-device without any of them.
+                </p>
+              </div>
+            )}
+
             {!models.active.hf_token_configured && (
               <p className="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-[12.5px] text-amber-700 dark:text-amber-400">
                 Without <code className="font-mono">HF_TOKEN</code> the app runs fully on-device:
@@ -94,7 +164,6 @@ export function ModelsView() {
             title="Auxiliary"
             description="Specialised tasks: summarization, extractive QA and OCR for scans."
             models={models.auxiliary}
-            requireToken
           />
 
           {/* Retrieval defaults */}
@@ -130,16 +199,11 @@ function ModelSection({
   title,
   description,
   models,
-  requireToken,
 }: {
   title: string
   description: string
   models: ModelDescriptor[]
-  requireToken?: boolean
 }) {
-  const { state } = useApp()
-  const hasToken = state.health?.hf_token_configured ?? false
-
   return (
     <section>
       <h2 className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-ink-faint">
@@ -148,7 +212,10 @@ function ModelSection({
       <p className="mb-2.5 text-[12px] text-ink-faint">{description}</p>
       <div className="space-y-2">
         {models.map((m) => {
-          const blocked = requireToken && m.requires_token && !hasToken
+          // Prefer the backend's own verdict over a blanket HF-token check, so
+          // a model needing only ANTHROPIC_API_KEY is not reported as blocked
+          // because HF_TOKEN happens to be absent.
+          const blocked = m.configured === false
           return (
             <div key={m.id} className={cn('card flex items-start gap-3 p-3.5', blocked && 'opacity-60')}>
               <span
@@ -161,8 +228,10 @@ function ModelSection({
                 <div className="flex flex-wrap items-center gap-1.5">
                   <p className="text-[13.5px] font-medium">{m.label}</p>
                   <span className="chip !px-1.5 !py-0 text-[9px]">{m.backend}</span>
-                  {m.requires_token && !hasToken && (
-                    <span className="chip !px-1.5 !py-0 text-[9px]">needs token</span>
+                  {blocked && (
+                    <span className="chip !px-1.5 !py-0 text-[9px]">
+                      needs {m.unavailable_reason?.split(' ')[0] ?? 'key'}
+                    </span>
                   )}
                 </div>
                 <p className="mt-0.5 break-all font-mono text-[11px] text-ink-faint">{m.id}</p>

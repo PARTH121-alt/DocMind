@@ -161,6 +161,17 @@ export interface ModelDescriptor {
   description: string
   approx_size_mb: number | null
   requires_token: boolean
+  /** False when the provider has no credential; the option is shown disabled. */
+  configured?: boolean
+  unavailable_reason?: string
+}
+
+export interface ProviderStatus {
+  local: boolean
+  hf_api: boolean
+  openai: boolean
+  anthropic: boolean
+  gemini: boolean
 }
 
 export interface ModelsResponse {
@@ -169,6 +180,7 @@ export interface ModelsResponse {
   reranking: ModelDescriptor[]
   auxiliary: ModelDescriptor[]
   tiers: Record<string, ModelDescriptor>
+  providers?: ProviderStatus
   active: {
     generation_backend: string
     embedding_backend: string
