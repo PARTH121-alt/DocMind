@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useApp } from '../../lib/AppContext'
 import * as api from '../../lib/api'
-import type { AnswerMode, Citation, EntityCard, RetrievedChunk } from '../../lib/types'
+import type { AnswerMode, Citation, EntityCard, RetrievedChunk, ToneReading } from '../../lib/types'
 import { copyToClipboard, downloadText } from '../../lib/utils'
 import { MessageBubble } from './MessageBubble'
 import { EmptyState } from './EmptyState'
@@ -34,6 +34,8 @@ interface StreamingState {
   sources: string[]
   mode: AnswerMode
   entity: EntityCard | null
+  /** Tone read from the user's question, shown while the reply streams in. */
+  tone: ToneReading | null
 }
 
 export function ChatPanel() {
@@ -86,12 +88,16 @@ export function ChatPanel() {
               citations: [],
               mode: 'document' as const,
               entity: null,
+              tone: null,
             },
           ],
         })
       }
 
-      setStreaming({ text: '', citations: [], retrieved: [], confidence: 0, sources: [], mode: 'document', entity: null })
+      setStreaming({
+        text: '', citations: [], retrieved: [], confidence: 0,
+        sources: [], mode: 'document', entity: null, tone: null,
+      })
 
       const stop = api.chat.stream(
         {
@@ -128,6 +134,7 @@ export function ChatPanel() {
                 mode: nextMode,
                 sources: (data.sources as string[]) ?? s.sources,
                 entity: (data.entity as EntityCard | null) ?? null,
+                tone: (data.tone as ToneReading | null) ?? null,
                 text: isRefusal ? ((data.answer as string) || REFUSAL_FALLBACK) : s.text,
               }
             })
@@ -229,6 +236,7 @@ export function ChatPanel() {
                           confidence: streaming.confidence,
                           latency_ms: null,
                           created_at: new Date().toISOString(),
+                          tone: streaming.tone,
                           citations: streaming.citations,
                           mode: streaming.mode,
                           entity: streaming.entity,

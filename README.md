@@ -103,6 +103,69 @@ back to the local model rather than failing the request.
 
 ---
 
+## Reading human feelings
+
+Two things, sharing one deterministic analyser.
+
+**Sentiment & Emotion tool** (Documents → select files → **Emotions**) scores
+documents across Plutchik's eight emotions plus valence and arousal, and surfaces
+the passages that drove the score. Built for support tickets, reviews, surveys
+and HR feedback:
+
+```
+Overall: Anger  (neutral, strong signal · 12 emotional terms)
+
+Emotion distribution      valence −0.09
+  Joy      ████████ 34%   arousal  42%
+  Anger    ████████████ 48%
+
+Most emotionally charged
+  Anger 87%  "I am absolutely furious."
+  Fear  65%  "been a genuinely stressful experience and your website
+               promised next-day delivery."
+```
+
+**Tone-aware replies.** When your message reads as emotional, a small badge
+appears under it (`reads as anger`) and the answer is shaped accordingly — lead
+with the substance, never with an apology for how you feel.
+
+### Why a lexicon and not the chat model
+
+The local generator is a 0.5B model. Asking it to label emotions produces output
+that varies run to run and cannot be regression-tested, and a wrong *"this
+customer is furious"* is a costly error in support triage. A lexicon is
+deterministic, runs in ~5 ms, is inspectable, and gives the same answer for the
+same text forever. The model never decides the emotion.
+
+### Design decisions worth knowing
+
+- **Terms are weighted by intensity, not counted.** Counting every hit equally
+  made a document with one furious paragraph and one polite sign-off report as
+  *Joy*, because "thank you" outweighed "absolutely furious".
+- **Fragments are rejected.** Sentence splitting happily produces "A frustrated
+  customer" from a sign-off, which then outranked the actual complaint above it.
+  A passage must contain a verb or be long enough that a missing verb is
+  plausible.
+- **Negation attenuates rather than inverts.** "not good" is mildly negative, not
+  strongly positive — full inversion would let negation manufacture intensity.
+- **Valence is soft-saturated (`tanh`), not clamped.** Clamping pinned both
+  "angry" and "extremely angry" to −1.0, silently discarding intensifiers on
+  exactly the short messages where a frustrated customer writes three words.
+- **Tone must be confident to act.** Below 0.5 confidence the reading is
+  discarded. Inferring feelings from three words is worse than not trying.
+
+### Known limitations
+
+- **Sarcasm is not detected.** "Great, another outage" reads as *joy*. This is
+  asserted in the test suite as a documented failure, not quietly papered over.
+- **Negation has a 3-token window**, so distant negation is approximated.
+- **Word-level, not speaker-aware.** "he was furious" attributes anger to the
+  writer.
+- **Domain shifts matter.** "sick" is praise in gaming and illness in medicine.
+- **The lexicon is a research derivative.** NRC was released for non-commercial
+  use. For commercial deployment, swap `_LEXICON` for a licensed alternative
+  (LIWC, or Azure AI Language); the module is deliberately provider-agnostic.
+
 ## Popular models: ChatGPT, Claude, Gemini, and their open counterparts
 
 The model picker is grouped by vendor, and every entry states whether it is
@@ -323,6 +386,7 @@ the *desired* outcome.
 | `live_web_test.py` | Clock answers, SSRF guards, intent routing, provider fallbacks |
 | `entity_test.py` | Entity/property extraction, document-question rejection, fact formatting, throttling |
 | `provider_test.py` | Hosted provider adapters against mock servers reproducing each vendor's wire format; missing-key and malformed-payload handling |
+| `sentiment_test.py` | Emotion lexicon integrity, negation, intensifiers, sarcasm limitation, mixed documents, passage ranking, tone guidance, determinism |
 | `chunking_test.py` | Cleaning artefacts; chunk invariants (page anchoring, offsets, overlap) |
 | `vectorstore_test.py` | FAISS add/search/delete, and that deletions keep ids and payloads aligned |
 | `e2e_pipeline_test.py` | Real extraction → embedding → FAISS → generation, plus both defences |
@@ -437,6 +501,9 @@ scripts/       dev.sh, test suites, diagnostics
   reported honestly rather than guessed at.
 - **Entity facts can be stale or contested.** Wikidata is crowd-edited; a value
   is only as good as its most recent revision.
+- **Emotion analysis does not understand sarcasm, context or tone of voice.** It
+  reads word choice. Treat a high anger score as a signal to review a passage, not
+  as a conclusion about a person. See the limitations above.
 - **Small-model context.** Sub-1B models are given a single best passage
   (`SMALL_MODEL_TOP_K=1`) because they are measurably derailed by competing figures —
   8/8 correct with one passage, 0/8 with two on the same question. Larger models use

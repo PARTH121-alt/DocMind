@@ -90,6 +90,8 @@ export interface Message {
   mode: AnswerMode
   /** Structured entity payload for entity lookups. */
   entity: EntityCard | null
+  /** Emotional tone of the user's question, when it read clearly. */
+  tone: ToneReading | null
 }
 
 export interface Conversation {
@@ -134,6 +136,7 @@ export interface ChatResponse {
   mode: AnswerMode
   mode_reason: string
   entity: EntityCard | null
+  tone?: ToneReading | null
   citations: Citation[]
   retrieved_chunks: RetrievedChunk[]
   model: string
@@ -164,6 +167,78 @@ export interface ModelDescriptor {
   /** False when the provider has no credential; the option is shown disabled. */
   configured?: boolean
   unavailable_reason?: string
+}
+
+/** How the user's message read emotionally, returned only when it was clear. */
+export interface ToneReading {
+  emotion: string
+  label: string
+  confidence: number
+  valence: number
+  intensity: number
+  guidance?: string
+}
+
+export interface EmotionPassage {
+  text: string
+  emotion: string
+  polarity: string
+  charge: number
+  intensity: number
+  hits: number
+  valence: number
+  document_id: string
+  filename: string
+  page_number: number | null
+  section?: string | null
+}
+
+export interface EmotionDocument {
+  document_id: string
+  filename: string
+  emotion: string
+  emotion_label: string
+  polarity: string
+  valence: number
+  arousal: number
+  scores: Record<string, number>
+  hits: number
+  chunks_analysed: number
+  matched_words: string[]
+  charged_passages: EmotionPassage[]
+  has_text: boolean
+}
+
+export interface EmotionOverall {
+  emotion: string
+  emotion_label: string
+  polarity: string
+  valence: number
+  arousal: number
+  scores: Record<string, number>
+  documents_analysed: number
+  emotional_hits: number
+  signal: 'strong' | 'moderate' | 'sparse'
+}
+
+export interface EmotionResponse {
+  summary: string
+  documents: EmotionDocument[]
+  overall: EmotionOverall | null
+  charged_passages: EmotionPassage[]
+  sources: string[]
+  citations: Citation[]
+  model: string
+  processing_time_ms: number
+}
+
+export interface ToneReading {
+  emotion: string
+  label: string
+  confidence: number
+  valence: number
+  intensity: number
+  guidance?: string
 }
 
 export interface ProviderStatus {

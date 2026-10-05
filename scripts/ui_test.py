@@ -559,6 +559,101 @@ def main() -> int:
             )
         chrome.screenshot(shots / "21-models-providers.png")
 
+        # ---- Emotional tone of the question should surface on the bubble ----
+        ws.evaluate(
+            """
+            (() => {
+              const btns = [...document.querySelectorAll('button')];
+              btns.find(b => b.textContent.trim().startsWith('Chat'))?.click();
+              return true;
+            })()
+            """
+        )
+        time.sleep(1.2)
+        ask(
+            "This is the third time I have contacted support and nobody has fixed "
+            "it. Absolutely unacceptable.",
+            wait_s=60,
+        )
+        time.sleep(1.0)
+        tone_shown = ws.evaluate(
+            "[...document.querySelectorAll('span[title]')]"
+            ".some(e => /reads as /i.test(e.getAttribute('title')||''))"
+        )
+        check("a frustrated question gets a tone badge", bool(tone_shown))
+        chrome.screenshot(shots / "24-tone-badge.png")
+
+        # A neutral technical question must NOT get one.
+        before = ws.evaluate(
+            "[...document.querySelectorAll('span[title]')]"
+            ".filter(e => /reads as /i.test(e.getAttribute('title')||'')).length"
+        )
+        ask("What is the maximum efficiency of extracting wind energy?", wait_s=60)
+        time.sleep(1.0)
+        after = ws.evaluate(
+            "[...document.querySelectorAll('span[title]')]"
+            ".filter(e => /reads as /i.test(e.getAttribute('title')||'')).length"
+        )
+        check(
+            "a neutral question does not get a tone badge",
+            after == before,
+            f"before={before} after={after}",
+        )
+
+        # ---- Emotion analysis tool on a document ----
+        ws.evaluate(
+            """
+            (() => {
+              const btns = [...document.querySelectorAll('button')];
+              btns.find(b => b.textContent.trim().startsWith('Documents'))?.click();
+              return true;
+            })()
+            """
+        )
+        time.sleep(1.5)
+        ws.evaluate(
+            """
+            (() => {
+              const boxes = [...document.querySelectorAll('input[type=checkbox]')];
+              const n = boxes.find(b => (b.closest('[class*=card]') || b.parentElement || {textContent:''})
+                .textContent.includes('Demo-Renewable-Energy'));
+              if (n) n.click();
+              return !!n;
+            })()
+            """
+        )
+        time.sleep(1.2)
+        ran = ws.evaluate(
+            """
+            (() => {
+              const b = [...document.querySelectorAll('button')]
+                .find(x => x.textContent.trim() === 'Emotions');
+              if (!b) return false;
+              b.click();
+              return true;
+            })()
+            """
+        )
+        check("Emotions tool button exists", bool(ran))
+        for _ in range(45):
+            time.sleep(1)
+            if ws.evaluate("!!document.querySelector('[data-testid=emotion-panel]')"):
+                break
+        panel = ws.evaluate("!!document.querySelector('[data-testid=emotion-panel]')")
+        check("emotion panel renders", bool(panel))
+        if panel:
+            panel_text = ws.evaluate(
+                "document.querySelector('[data-testid=emotion-panel]').innerText"
+            ) or ""
+            check("panel shows a distribution", "EMOTION DISTRIBUTION" in panel_text.upper())
+            check("panel reports intensity", "valence" in panel_text.lower())
+            check(
+                "panel states its own limits",
+                "sarcasm" in panel_text.lower(),
+                panel_text[-200:],
+            )
+        chrome.screenshot(shots / "23-emotion-panel.png")
+
         # ---- Navigation views ----
         for label, needle in [
             ("Documents", "Documents"),

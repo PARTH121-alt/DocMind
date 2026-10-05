@@ -21,6 +21,7 @@ import type {
   Health,
   ModelsResponse,
   SmartResponse,
+  EmotionResponse,
 } from './types'
 
 const BASE = '/api'
@@ -263,6 +264,15 @@ export const search = {
 }
 
 export const smart = {
+  emotions: (documentIds: string[], collectionId?: string | null) =>
+    request<EmotionResponse>('/documents/emotions', {
+      method: 'POST',
+      body: JSON.stringify({
+        document_ids: documentIds,
+        collection_id: collectionId ?? null,
+        top_passages: 6,
+      }),
+    }),
   summarize: (documentIds: string[], style: string, collectionId?: string | null) =>
     request<SmartResponse>('/documents/summarize', {
       method: 'POST',

@@ -67,6 +67,8 @@ class Resolution:
     conversation: Conversation | None = None
     # Populated for entity lookups.
     entity: dict | None = None
+    # How the user's message read emotionally, when it did.
+    tone: dict | None = None
 
     @property
     def model_label(self) -> str:
@@ -104,6 +106,9 @@ async def prepare(
 ) -> tuple[Conversation, RouteDecision, list[Document]]:
     """Create the conversation row and decide how to answer."""
     conv = await service.get_or_create_conversation(db, user, req.conversation_id, req.model)
+    # Tone lives on the *user* row: the badge is attached to the user's bubble,
+    # so storing it on the assistant row would leave reloaded history blank.
+    tone = _tone_for(req.question)
     db.add(
         Message(
             id=new_id(),
@@ -111,6 +116,7 @@ async def prepare(
             user_id=user.id,
             role=MessageRole.user,
             content=req.question,
+            meta={"tone": tone} if tone else {},
         )
     )
     if conv.title == "New Chat":
@@ -379,9 +385,12 @@ async def resolve_general(
         )
 
     model = chat_model.get_chat_model(req.model)
+    tone = _tone_for(req.question)
+    # Tone guidance sits after the grounding rules so it cannot outrank them.
+    system = GENERAL_SYSTEM_PROMPT + (model.TONE_GUIDANCE % tone["guidance"] if tone else "")
     answer = await anyio.to_thread.run_sync(
         lambda: model.complete(
-            req.question, context="", system=GENERAL_SYSTEM_PROMPT, max_new_tokens=400
+            req.question, context="", system=system, max_new_tokens=400
         )
     )
     answer = chat_model.strip_refusal_token(answer).strip()
@@ -402,6 +411,7 @@ async def resolve_general(
         model_id=model.label,
         sources=[],
         conversation=conv,
+        tone=tone,
     )
 
 
@@ -410,6 +420,10 @@ async def resolve_document(
 ) -> Resolution:
     """The original path: retrieve from uploads, answer with file citations."""
     model = chat_model.get_chat_model(req.model)
+    # Read the tone before any early return: "there are no documents" is still
+    # an answer given to a person who may be frustrated, and the badge belongs
+    # on it too.
+    tone = _tone_for(req.question)
 
     if not docs:
         return Resolution(
@@ -420,6 +434,7 @@ async def resolve_document(
             latency_ms=int((time.time() - started) * 1000),
             model_id=model.label,
             conversation=conv,
+            tone=tone,
         )
 
     chunks = await anyio.to_thread.run_sync(
@@ -443,6 +458,7 @@ async def resolve_document(
             latency_ms=int((time.time() - started) * 1000),
             model_id=model.label,
             conversation=conv,
+            tone=tone,
         )
 
     for chunk in chunks:
@@ -456,6 +472,7 @@ async def resolve_document(
             req.question,
             context=context,
             history=history,
+            system=model.system_prompt(tone["guidance"] if tone else ""),
             temperature=req.temperature,
             top_p=req.top_p,
             max_new_tokens=req.max_tokens,
@@ -487,7 +504,13 @@ async def resolve_document(
         model_id=model.label,
         sources=sorted({c.filename for c in chunks}) if grounded else [],
         conversation=conv,
+        tone=tone,
     )
+
+
+#: Single definition of when a tone reading is acted on, shared with the
+#: persistence layer so the badge and the reply guidance always agree.
+_tone_for = service._tone_for
 
 
 def sanitize_text(text: str) -> str:
@@ -524,6 +547,7 @@ async def resolve(db: AsyncSession, user: User, req: ChatRequest) -> Resolution:
         resolution.confidence,
         mode=resolution.mode,
         entity=resolution.entity,
+        tone=resolution.tone,
     )
     return resolution
 
@@ -541,7 +565,7 @@ async def stream_tokens(
         res = await resolve_live(db, user, req, conv, started)
         await service.save_assistant_message(
             db, user, conv, res.answer, [], res.model_label, res.latency_ms,
-            False, res.confidence, mode=res.mode,
+            False, res.confidence, mode=res.mode, tone=res.tone,
         )
         yield ("delta", res.answer, None)
         yield ("done", res, None)
@@ -552,7 +576,7 @@ async def stream_tokens(
         yield ("delta", res.answer, None)
         await service.save_assistant_message(
             db, user, conv, res.answer, [], res.model_label, res.latency_ms,
-            res.grounded, res.confidence, mode=res.mode, entity=res.entity,
+            res.grounded, res.confidence, mode=res.mode, tone=res.tone, entity=res.entity,
         )
         yield ("done", res, None)
         return
@@ -564,7 +588,7 @@ async def stream_tokens(
         yield ("delta", res.answer, None)
         await service.save_assistant_message(
             db, user, conv, res.answer, [], res.model_label, res.latency_ms,
-            False, res.confidence, mode=res.mode,
+            False, res.confidence, mode=res.mode, tone=res.tone,
         )
         yield ("done", res, None)
         return
@@ -578,7 +602,7 @@ async def stream_tokens(
             return
         await service.save_assistant_message(
             db, user, conv, res.answer, res.chunks if res.grounded else [],
-            res.model_label, res.latency_ms, res.grounded, res.confidence, mode=res.mode,
+            res.model_label, res.latency_ms, res.grounded, res.confidence, mode=res.mode, tone=res.tone,
         )
         yield ("done", res, None)
         return
@@ -589,7 +613,7 @@ async def stream_tokens(
         yield ("delta", res.answer, None)
         await service.save_assistant_message(
             db, user, conv, res.answer, [], res.model_label, res.latency_ms,
-            False, res.confidence, mode=res.mode,
+            False, res.confidence, mode=res.mode, tone=res.tone,
         )
         yield ("done", res, None)
         return
@@ -611,7 +635,7 @@ async def stream_tokens(
         yield ("delta", res.answer, None)
         await service.save_assistant_message(
             db, user, conv, res.answer, [], res.model_label, res.latency_ms,
-            False, res.confidence, mode=res.mode,
+            False, res.confidence, mode=res.mode, tone=res.tone,
         )
         yield ("done", res, None)
         return
@@ -668,7 +692,7 @@ async def stream_tokens(
     )
     await service.save_assistant_message(
         db, user, conv, answer, chunks if grounded else [], model.label,
-        resolution.latency_ms, grounded, resolution.confidence, mode=resolution.mode,
+        resolution.latency_ms, grounded, resolution.confidence, mode=resolution.mode, tone=resolution.tone,
     )
     yield ("done", resolution, None)
 

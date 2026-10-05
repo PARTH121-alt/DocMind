@@ -15,6 +15,10 @@ from app.models.entities import User
 from app.schemas.api import (
     CitationOut,
     CompareRequest,
+    EmotionFactOut,
+    EmotionOverallOut,
+    EmotionRequest,
+    EmotionResponse,
     ExtractInfoRequest,
     QuizRequest,
     SearchRequest,
@@ -25,6 +29,7 @@ from app.schemas.api import (
     SummarizeRequest,
 )
 from app.services.chat import smart
+from app.services.sentiment import document as sentiment_doc
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["search"])
@@ -105,6 +110,29 @@ async def compare_documents(
         db, user, req.document_ids, req.aspect, req.collection_id
     )
     return _as_response(result, chunks, model_id, ms)
+
+
+@router.post("/documents/emotions", response_model=EmotionResponse)
+async def analyze_emotions(
+    req: EmotionRequest,
+    user: User = Depends(rate_limited),
+    db: AsyncSession = Depends(get_db),
+) -> EmotionResponse:
+    """Score documents for emotion. Deterministic: no model call."""
+    result = await sentiment_doc.analyze_documents(
+        db, user, req.document_ids, req.collection_id, req.top_passages
+    )
+    chunks = sentiment_doc.to_chunks(result["documents"], result["charged_passages"])
+    return EmotionResponse(
+        summary=result["summary"],
+        documents=[EmotionFactOut(**d) for d in result["documents"]],
+        overall=EmotionOverallOut(**result["overall"]) if result["overall"] else None,
+        charged_passages=result["charged_passages"],
+        sources=smart._sources(chunks),
+        citations=_citations(chunks),
+        model=result["model"],
+        processing_time_ms=result["processing_time_ms"],
+    )
 
 
 @router.post("/documents/extract-info", response_model=SmartResponse)

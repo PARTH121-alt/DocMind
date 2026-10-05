@@ -11,6 +11,7 @@ import {
 } from '../../lib/utils'
 import { Markdown } from './Markdown'
 import { ModeBadge } from './ModeBadge'
+import { ToneBadge } from './ToneBadge'
 import { EntityCardView } from './EntityCardView'
 import {
   IconAlert,
@@ -185,6 +186,13 @@ function MessageBubbleBase({
                 {citations.length} citation{citations.length === 1 ? '' : 's'}
               </span>
             )}
+          </div>
+        )}
+
+        {/* How the question sounded, when it clearly did */}
+        {isUser && !streaming && message.tone && (
+          <div className="mt-1.5">
+            <ToneBadge tone={message.tone} />
           </div>
         )}
 

@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useApp } from '../../lib/AppContext'
 import * as api from '../../lib/api'
-import type { DocumentItem, RetrievedChunk, SmartResponse } from '../../lib/types'
+import type { DocumentItem, EmotionResponse, RetrievedChunk, SmartResponse } from '../../lib/types'
+import { EmotionPanel } from './EmotionPanel'
 import {
   cn,
   debounce,
@@ -26,9 +27,13 @@ import {
   IconSparkle,
   IconSpinner,
   IconTrash,
+  IconHeart,
 } from '../ui/Icons'
 
-type ToolResult = { title: string; content: string } | null
+type ToolResult =
+  | { kind: 'text'; title: string; content: string }
+  | { kind: 'emotion'; title: string; data: EmotionResponse }
+  | null
 
 export function DocumentsView({ onOpenChat }: { onOpenChat: () => void }) {
   const { state, derived, reloadDocuments, dispatch } = useApp()
@@ -113,7 +118,10 @@ export function DocumentsView({ onOpenChat }: { onOpenChat: () => void }) {
     window.dispatchEvent(new CustomEvent('docmind:preview-doc', { detail: doc.id }))
   }
 
-  async function runTool(name: string, fn: () => Promise<SmartResponse>) {
+  async function runTool(
+    name: string,
+    fn: () => Promise<SmartResponse | EmotionResponse>,
+  ) {
     const ids = Array.from(selected)
     if (!ids.length) {
       toast.push('Select at least one indexed document first', 'error')
@@ -123,7 +131,11 @@ export function DocumentsView({ onOpenChat }: { onOpenChat: () => void }) {
     setResult(null)
     try {
       const res = await fn.call(null)
-      setResult({ title: `${name} result`, content: res.result })
+      if ('summary' in res && !('result' in res)) {
+        setResult({ kind: 'emotion', title: 'Emotion analysis', data: res as EmotionResponse })
+      } else {
+        setResult({ kind: 'text', title: `${name} result`, content: (res as SmartResponse).result })
+      }
       toast.push(`${name} finished in ${(res.processing_time_ms / 1000).toFixed(1)}s`, 'success')
     } catch (e) {
       toast.push((e as Error).message, 'error')
@@ -174,6 +186,13 @@ export function DocumentsView({ onOpenChat }: { onOpenChat: () => void }) {
         {selectedCount > 0 && (
           <div className="mt-3 flex flex-wrap items-center gap-1.5 animate-fade-in">
             <span className="chip">{selectedCount} selected</span>
+            <ToolButton icon={<IconHeart className="text-xs" />} label="Emotions" busy={busyTool === 'Emotions'}
+              onClick={() =>
+                runTool('Emotions', () =>
+                  api.smart.emotions(Array.from(selected), state.activeCollectionId),
+                )
+              }
+            />
             <ToolButton icon={<IconQuote className="text-xs" />} label="Summarize" busy={busyTool === 'Summarize'}
               onClick={() =>
                 runTool('Summarize', () =>
@@ -254,7 +273,25 @@ export function DocumentsView({ onOpenChat }: { onOpenChat: () => void }) {
           )}
 
           {/* Smart tool output */}
-          {result && (
+          {result && result.kind === 'emotion' && (
+            <div className="card p-5" data-testid="emotion-result">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-sm font-semibold">{result.title}</h2>
+                <button onClick={() => setResult(null)} className="btn-ghost px-2 py-1 text-[11px]">
+                  Close
+                </button>
+              </div>
+              <EmotionPanel
+                overall={result.data.overall}
+                documents={result.data.documents}
+                passages={result.data.charged_passages}
+                summary={result.data.summary}
+                latencyMs={result.data.processing_time_ms}
+              />
+            </div>
+          )}
+
+          {result && result.kind === 'text' && (
             <div className="card p-5">
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="text-sm font-semibold">{result.title}</h2>

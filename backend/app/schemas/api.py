@@ -100,6 +100,17 @@ class CitationOut(BaseModel):
     domain: str | None = None
 
 
+class ToneOut(BaseModel):
+    """How the user's message read emotionally, when it clearly did."""
+
+    emotion: str
+    label: str
+    confidence: float
+    valence: float
+    intensity: float
+    guidance: str = ""
+
+
 class MessageOut(ORMModel):
     id: str
     role: str
@@ -113,6 +124,8 @@ class MessageOut(ORMModel):
     mode: str = "document"
     # Structured entity payload, when the answer was an entity lookup.
     entity: EntityCardOut | None = None
+    # Emotional tone of the user's question, when it read clearly.
+    tone: ToneOut | None = None
 
 
 class ChatRequest(BaseModel):
@@ -155,6 +168,8 @@ class ChatResponse(BaseModel):
     mode_reason: str = ""
     # Present for entity lookups.
     entity: EntityCardOut | None = None
+    # Present when the user's message read as emotional.
+    tone: ToneOut | None = None
     citations: list[CitationOut]
     retrieved_chunks: list[dict]
     model: str
@@ -287,6 +302,49 @@ class CompareRequest(DocumentScopedRequest):
 
 class SummarizeRequest(DocumentScopedRequest):
     style: str = "detailed"  # short | detailed | executive | key_points
+
+
+class EmotionRequest(DocumentScopedRequest):
+    top_passages: int = Field(default=5, ge=1, le=20)
+
+
+class EmotionFactOut(BaseModel):
+    document_id: str
+    filename: str
+    emotion: str
+    emotion_label: str
+    polarity: str
+    valence: float
+    arousal: float
+    scores: dict[str, float]
+    hits: int
+    chunks_analysed: int = 0
+    matched_words: list[str] = []
+    charged_passages: list[dict] = []
+    has_text: bool = True
+
+
+class EmotionOverallOut(BaseModel):
+    emotion: str
+    emotion_label: str
+    polarity: str
+    valence: float
+    arousal: float
+    scores: dict[str, float]
+    documents_analysed: int
+    emotional_hits: int
+    signal: str
+
+
+class EmotionResponse(BaseModel):
+    summary: str
+    documents: list[EmotionFactOut] = []
+    overall: EmotionOverallOut | None = None
+    charged_passages: list[dict] = []
+    sources: list[str] = []
+    citations: list[CitationOut] = []
+    model: str = "lexicon"
+    processing_time_ms: int = 0
 
 
 class ExtractInfoRequest(DocumentScopedRequest):

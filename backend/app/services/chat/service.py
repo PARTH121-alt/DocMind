@@ -100,6 +100,23 @@ def build_citations(chunks: list[RetrievedChunk]) -> list[Citation]:
     return cited
 
 
+def _tone_for(question: str) -> dict | None:
+    """Read the user's mood, returning None when there is nothing to act on.
+
+    Only a confident reading of a real emotion changes anything. Weaker signals
+    are discarded: inferring how someone feels from three words is worse than
+    not trying, and an over-eager badge on every message is noise.
+    """
+    from app.services.sentiment.analyzer import read_tone
+
+    reading = read_tone(question or "")
+    if reading.emotion == "neutral" or not reading.guidance:
+        return None
+    if reading.confidence < 0.5:
+        return None
+    return reading.as_dict()
+
+
 def _keep_cited_only(chunks: list[RetrievedChunk], answer: str) -> list[RetrievedChunk]:
     """Prefer passages the model actually referenced; fall back to all of them."""
     indices = {int(m) - 1 for m in CITE_RE.findall(answer) if 0 < int(m) <= len(chunks)}
@@ -184,6 +201,9 @@ async def chat_stream(
     import anyio.to_thread
 
     conv = await get_or_create_conversation(db, user, req.conversation_id, req.model)
+    # The tone reading is stored on the *user* row, because the badge that shows
+    # it is attached to the user's bubble. Persisting it on the assistant row
+    # instead would mean reloaded history could never render the badge.
     db.add(
         Message(
             id=new_id(),
@@ -191,6 +211,7 @@ async def chat_stream(
             user_id=user.id,
             role=MessageRole.user,
             content=req.question,
+            meta={"tone": _tone_for(req.question)} if _tone_for(req.question) else {},
         )
     )
     if conv.title == "New Chat":
@@ -231,12 +252,19 @@ async def save_assistant_message(
     confidence: float,
     mode: str = "document",
     entity: dict | None = None,
+    tone: dict | None = None,
 ) -> Message:
     """Persist the assistant turn together with its citations.
 
-    `entity` is stored in `meta` so a reloaded conversation still renders the
-    structured card rather than degrading to the plain Markdown fallback.
+    `entity` and `tone` are stored in `meta` so a reloaded conversation still
+    renders the structured card and the tone badge, rather than degrading to
+    the plain Markdown fallback.
     """
+    meta: dict = {}
+    if entity:
+        meta["entity"] = entity
+    if tone:
+        meta["tone"] = tone
     used = _keep_cited_only(chunks, answer) if grounded else []
     citations = build_citations(used) if grounded else []
 
@@ -251,7 +279,7 @@ async def save_assistant_message(
         confidence=confidence,
         latency_ms=latency_ms,
         mode=mode,
-        meta={"entity": entity} if entity else {},
+        meta=meta,
     )
     db.add(msg)
     await db.flush()
