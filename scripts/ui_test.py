@@ -267,6 +267,30 @@ def main() -> int:
         # ---- Auth screen ----
         title = ws.evaluate("document.body.innerText") or ""
         check("auth screen visible", "Sign in" in title, f"body={title[:120]!r}")
+
+        # Credit line: present, readable, and the heart is actually red.
+        credit = ws.evaluate(
+            """
+            (() => {
+              const el = document.querySelector('[data-testid=made-with-love]');
+              if (!el) return null;
+              const path = el.querySelector('svg path');
+              return {
+                text: el.innerText,
+                label: el.querySelector('svg')?.getAttribute('aria-label'),
+                fill: path ? getComputedStyle(path).fill : null,
+              };
+            })()
+            """
+        )
+        check("auth screen shows the credit line", credit is not None)
+        if credit:
+            check("credit says 'Made with' and 'by Parth'",
+                  "Made with" in credit["text"] and "by Parth" in credit["text"],
+                  repr(credit["text"]))
+            check("heart is labelled for screen readers", credit["label"] == "love")
+            # rgb(239, 68, 68) is tailwind red-500.
+            check("heart is red", credit["fill"] == "rgb(239, 68, 68)", str(credit["fill"]))
         chrome.screenshot(shots / "01-auth.png")
 
         # ---- Register ----
@@ -653,6 +677,39 @@ def main() -> int:
                 panel_text[-200:],
             )
         chrome.screenshot(shots / "23-emotion-panel.png")
+
+        # ---- Sidebar credit: pinned below Light / Sign out ----
+        sidebar_credit = ws.evaluate(
+            """
+            (() => {
+              const credit = document.querySelector('[data-testid=made-with-love]');
+              const out = [...document.querySelectorAll('button')]
+                .find(b => (b.getAttribute('title') || '') === 'Sign out');
+              if (!credit || !out) return null;
+              const c = credit.getBoundingClientRect();
+              const o = out.getBoundingClientRect();
+              return {
+                top: c.top,
+                bottom: c.bottom,
+                signOutTop: o.top,
+                viewportH: window.innerHeight,
+              };
+            })()
+            """
+        )
+        check("sidebar shows the credit line", sidebar_credit is not None)
+        if sidebar_credit:
+            check(
+                "credit sits below the theme toggle and sign out",
+                sidebar_credit["top"] >= sidebar_credit["signOutTop"],
+                str(sidebar_credit),
+            )
+            check(
+                "credit is pinned to the bottom of the viewport",
+                sidebar_credit["viewportH"] - sidebar_credit["bottom"] < 24,
+                str(sidebar_credit),
+            )
+        chrome.screenshot(shots / "26-sidebar-credit.png")
 
         # ---- Navigation views ----
         for label, needle in [

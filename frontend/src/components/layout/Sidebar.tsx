@@ -7,6 +7,7 @@ import type { Collection } from '../../lib/types'
 import { cn, fileIcon, formatRelative, isProcessing, STATUS_META } from '../../lib/utils'
 import { UploadDropzone } from '../documents/UploadDropzone'
 import { WebPanel } from '../chat/WebPanel'
+import { MadeWithLove } from './MadeWithLove'
 import { useToast } from '../ui/Toasts'
 import {
   IconChat,
@@ -331,6 +332,22 @@ export function Sidebar({ view, onViewChange }: Props) {
             {!collapsed && 'Sign out'}
           </button>
         </div>
+        {/* Pinned under the theme toggle and sign out, so it never scrolls away
+            and always sits at the very bottom of the rail. */}
+        {!collapsed ? (
+          <MadeWithLove className="mt-2.5 border-t border-line pt-2.5" />
+        ) : (
+          <div className="mt-2.5 flex justify-center border-t border-line pt-2.5">
+            <span title="Made with love by Parth" aria-label="Made with love by Parth">
+              <svg viewBox="0 0 24 24" width="11" height="11" className="text-red-500" aria-hidden>
+                <path
+                  fill="currentColor"
+                  d="M12 21s-7.5-4.7-9.6-9.2C.7 8.2 2.4 4.5 6 4.5c2.1 0 3.6 1.2 4.3 2.4h3.4C14.4 5.7 15.9 4.5 18 4.5c3.6 0 5.3 3.7 3.6 7.3C19.5 16.3 12 21 12 21z"
+                />
+              </svg>
+            </span>
+          </div>
+        )}
       </div>
     </>
   )

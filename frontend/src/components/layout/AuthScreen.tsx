@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from 'react'
 import { useApp } from '../../lib/AppContext'
+import { MadeWithLove } from './MadeWithLove'
 import { IconAlert, IconSparkle } from '../ui/Icons'
 import { cn } from '../../lib/utils'
 
@@ -207,6 +208,8 @@ export function AuthScreen() {
             Documents are scoped to your account and are never used to train or answer for
             another user.
           </p>
+
+          <MadeWithLove className="mt-6" />
         </div>
       </div>
     </div>
