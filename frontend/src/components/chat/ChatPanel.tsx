@@ -7,6 +7,7 @@ import * as api from '../../lib/api'
 import type { AnswerMode, Citation, EntityCard, RetrievedChunk, ToneReading } from '../../lib/types'
 import { copyToClipboard, downloadText } from '../../lib/utils'
 import { MessageBubble } from './MessageBubble'
+import { LogoTile } from '../ui/Logo'
 import { EmptyState } from './EmptyState'
 import { Composer } from './Composer'
 import { ChatHeader } from './ChatHeader'
@@ -222,9 +223,7 @@ export function ChatPanel() {
 
               {streaming && (
                 <div className="group flex w-full animate-fade-in gap-3.5">
-                  <div className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-accent text-white shadow-card">
-                    D
-                  </div>
+                  <LogoTile size={32} className="mt-0.5" />
                   <div className="min-w-0 flex-1">
                     {streaming.text ? (
                       <MessageBubble

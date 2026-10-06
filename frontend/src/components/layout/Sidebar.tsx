@@ -27,6 +27,7 @@ import {
   IconUpload,
   IconX,
 } from '../ui/Icons'
+import { LogoTile } from '../ui/Logo'
 
 interface Props {
   view: string
@@ -74,11 +75,7 @@ export function Sidebar({ view, onViewChange }: Props) {
     <>
       {/* Header */}
       <div className={cn('flex h-14 shrink-0 items-center border-b border-line', collapsed ? 'justify-center px-2' : 'gap-2.5 px-4')}>
-        <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-accent text-white">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-            <path d="M12 3.5 13.6 8 18 9.6 13.6 11.2 12 15.7 10.4 11.2 6 9.6 10.4 8z" />
-          </svg>
-        </div>
+        <LogoTile size={32} />
         {!collapsed && (
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold tracking-tight">Origin</p>

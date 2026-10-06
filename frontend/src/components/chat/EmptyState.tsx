@@ -5,6 +5,7 @@ import { useApp } from '../../lib/AppContext'
 import { smart, documents as docsApi } from '../../lib/api'
 import { UploadDropzone } from '../documents/UploadDropzone'
 import { IconFile, IconSparkle, IconUpload } from '../ui/Icons'
+import { LogoTile } from '../ui/Logo'
 import { useToast } from '../ui/Toasts'
 
 const FLOW = ['Upload', 'Process', 'Ask', 'Get cited answers']
@@ -65,9 +66,7 @@ export function EmptyState({ onAsk }: { onAsk: (question: string) => void }) {
   return (
     <div className="flex min-h-full flex-col items-center justify-center py-10">
       <div className="w-full max-w-2xl text-center">
-        <div className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-2xl bg-accent text-white shadow-card">
-          <IconSparkle className="text-2xl" />
-        </div>
+        <LogoTile size={56} className="mx-auto mb-5" />
 
         <h2 className="text-balance text-[1.75rem] font-semibold tracking-tight">
           Chat with your documents.

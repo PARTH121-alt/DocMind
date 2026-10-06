@@ -3,7 +3,8 @@
 import { useState, type FormEvent } from 'react'
 import { useApp } from '../../lib/AppContext'
 import { MadeWithLove } from './MadeWithLove'
-import { IconAlert, IconSparkle } from '../ui/Icons'
+import { IconAlert } from '../ui/Icons'
+import { LogoTile } from '../ui/Logo'
 import { cn } from '../../lib/utils'
 
 export function AuthScreen() {
@@ -54,9 +55,7 @@ export function AuthScreen() {
         {/* Brand / value panel */}
         <div className="hidden flex-col justify-center lg:flex">
           <div className="mb-7 flex items-center gap-2.5">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-accent text-white shadow-card">
-              <IconSparkle className="text-xl" />
-            </div>
+            <LogoTile size={40} />
             <div>
               <p className="text-[15px] font-semibold tracking-tight">Origin</p>
               <p className="text-xs text-ink-faint">Document Intelligence</p>
@@ -104,9 +103,7 @@ export function AuthScreen() {
         {/* Form panel */}
         <div className="card w-full p-7">
           <div className="mb-6 flex items-center gap-2.5 lg:hidden">
-            <div className="grid h-9 w-9 place-items-center rounded-xl bg-accent text-white">
-              <IconSparkle className="text-lg" />
-            </div>
+            <LogoTile size={36} />
             <p className="font-semibold tracking-tight">Origin</p>
           </div>
 

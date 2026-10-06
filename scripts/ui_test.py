@@ -298,6 +298,66 @@ def main() -> int:
             "Origin" in title,
             f"body={title[:160]!r}",
         )
+
+        # ---- Logo ----
+        def logo_gradient() -> str:
+            return ws.evaluate(
+                """
+                (() => {
+                  const el = document.querySelector('[data-testid=origin-logo]');
+                  return el ? getComputedStyle(el).backgroundImage : '';
+                })()
+                """
+            ) or ""
+
+        dark_gradient = logo_gradient()
+        check("logo renders on the auth screen", bool(dark_gradient), dark_gradient)
+        check(
+            "logo is a gradient tile, not a flat colour",
+            "gradient" in dark_gradient,
+            dark_gradient,
+        )
+        # The mark is a ring plus a filled centre, not the old four-point star.
+        mark = ws.evaluate(
+            """
+            (() => {
+              const svg = document.querySelector('[data-testid=origin-logo] svg');
+              if (!svg) return null;
+              return {
+                circles: svg.querySelectorAll('circle').length,
+                paths: svg.querySelectorAll('path').length,
+              };
+            })()
+            """
+        )
+        check(
+            "logo mark is built from circles (an O)",
+            bool(mark) and mark["circles"] >= 2,
+            str(mark),
+        )
+        check(
+            "logo mark has the halo arcs, not a star",
+            bool(mark) and mark["paths"] == 2,
+            str(mark),
+        )
+
+        # Theme-aware: the same tile must not look identical in both themes.
+        ws.evaluate("localStorage.setItem('origin.theme','light'); true")
+        ws.send("Page.reload", {"ignoreCache": True})
+        time.sleep(2.5)
+        light_gradient = logo_gradient()
+        check("logo renders in light mode too", bool(light_gradient))
+        check(
+            "logo adapts to the theme",
+            light_gradient != dark_gradient,
+            f"light={light_gradient} dark={dark_gradient}",
+        )
+        chrome.screenshot(shots / "27-logo-light.png")
+
+        # Restore the dark default for the rest of the run.
+        ws.evaluate("localStorage.setItem('origin.theme','dark'); true")
+        ws.send("Page.reload", {"ignoreCache": True})
+        time.sleep(2.5)
         check("old brand is gone from the auth screen", "DocMind" not in title, title[:160])
 
         # ---- Register ----

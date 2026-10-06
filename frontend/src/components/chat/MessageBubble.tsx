@@ -11,6 +11,7 @@ import {
 } from '../../lib/utils'
 import { Markdown } from './Markdown'
 import { ModeBadge } from './ModeBadge'
+import { OriginMark } from '../ui/Logo'
 import { ToneBadge } from './ToneBadge'
 import { EntityCardView } from './EntityCardView'
 import {
@@ -64,13 +65,11 @@ function MessageBubbleBase({
       <div
         className={cn(
           'mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[13px] font-semibold',
-          isUser
-            ? 'bg-surface-3 text-ink-muted'
-            : 'bg-accent text-white shadow-card',
+          isUser ? 'bg-surface-3 text-ink-muted' : '',
         )}
         aria-hidden
       >
-        {isUser ? 'You'.slice(0, 1) : 'D'}
+        {isUser ? 'You'.slice(0, 1) : <OriginMark px={20} className="text-white" />}
       </div>
 
       <div className={cn('flex min-w-0 flex-1 flex-col', isUser && 'items-end')}>
