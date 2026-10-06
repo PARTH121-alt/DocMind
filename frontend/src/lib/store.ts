@@ -8,6 +8,7 @@
 
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react'
 import * as api from './api'
+import { eventName, readKey, writeKey } from './storage'
 import type {
   Collection,
   Conversation,
@@ -130,7 +131,7 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-const COLLECTION_KEY = 'docmind.collection'
+const COLLECTION_KEY = 'origin.collection'
 
 export function useAppState() {
   const [state, dispatch] = useReducer(reducer, initial)
@@ -156,10 +157,10 @@ export function useAppState() {
   }, [state.theme, prefersDark])
 
   useEffect(() => {
-    const saved = (localStorage.getItem('docmind.theme') as State['theme']) || 'system'
+    const saved = (readKey('theme') as State['theme']) || 'system'
     // Persist the default immediately so storage and state never disagree.
-    if (!localStorage.getItem('docmind.theme')) {
-      localStorage.setItem('docmind.theme', saved)
+    if (!readKey('theme')) {
+      writeKey('theme', saved)
     }
     dispatch({ type: 'theme', theme: saved })
   }, [])
@@ -178,7 +179,7 @@ export function useAppState() {
   }, [state.theme])
 
   const setTheme = useCallback((theme: State['theme']) => {
-    localStorage.setItem('docmind.theme', theme)
+    writeKey('theme', theme)
     dispatch({ type: 'theme', theme })
   }, [])
 
@@ -207,7 +208,7 @@ export function useAppState() {
       dispatch({ type: 'collections/set', collections: collections.value })
       // Default to the first collection so the user always has a scope.
       setTimeout(() => {
-        const stored = localStorage.getItem(COLLECTION_KEY)
+        const stored = readKey('collection')
         if (stored && collections.value.some((c) => c.id === stored)) {
           dispatch({ type: 'collection/active', id: stored })
         } else if (collections.value.length) {
@@ -259,8 +260,8 @@ export function useAppState() {
       api.setToken(null)
       dispatch({ type: 'reset' })
     }
-    window.addEventListener('docmind:unauthorized', onUnauthorized)
-    return () => window.removeEventListener('docmind:unauthorized', onUnauthorized)
+    window.addEventListener(eventName('unauthorized'), onUnauthorized)
+    return () => window.removeEventListener(eventName('unauthorized'), onUnauthorized)
   }, [])
 
   // ---- Document polling -------------------------------------------------
@@ -291,7 +292,7 @@ export function useAppState() {
   // ---- Collection changes ----------------------------------------------
   const setActiveCollection = useCallback((id: string | null) => {
     dispatch({ type: 'collection/active', id })
-    if (id) localStorage.setItem(COLLECTION_KEY, id)
+    if (id) writeKey('collection', id)
     else localStorage.removeItem(COLLECTION_KEY)
   }, [])
 

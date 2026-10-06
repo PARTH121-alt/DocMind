@@ -158,7 +158,7 @@ import socket
 
 class Chrome:
     def __init__(self) -> None:
-        self.profile = tempfile.mkdtemp(prefix="docmind-chrome-")
+        self.profile = tempfile.mkdtemp(prefix="origin-chrome-")
         self.proc = subprocess.Popen(
             [
                 CHROME,
@@ -293,6 +293,13 @@ def main() -> int:
             check("heart is red", credit["fill"] == "rgb(239, 68, 68)", str(credit["fill"]))
         chrome.screenshot(shots / "01-auth.png")
 
+        check(
+            "auth screen shows the new name",
+            "Origin" in title,
+            f"body={title[:160]!r}",
+        )
+        check("old brand is gone from the auth screen", "DocMind" not in title, title[:160])
+
         # ---- Register ----
         run_id = f"{int(time.time())}{random.randint(1000, 9999)}"
         email = f"ui-{run_id}@example.com"
@@ -362,7 +369,8 @@ def main() -> int:
         doc_count = ws.evaluate(
             """
             (async () => {
-              const t = localStorage.getItem('docmind.token');
+              // Read either key: the app migrated docmind.* -> origin.* on read.
+              const t = localStorage.getItem('origin.token') || localStorage.getItem('docmind.token');
               const r = await fetch('/api/documents', {headers:{Authorization:'Bearer '+t}});
               const j = await r.json();
               return j.total;

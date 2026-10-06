@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 API = "https://en.wikipedia.org/w/api.php"
 SUMMARY_API = "https://en.wikipedia.org/api/rest_v1/page/summary/"
-UA = "DocMind/1.0 (https://github.com/PARTH121-alt/DocMind; document Q&A assistant)"
+UA = "Origin/1.0 (https://github.com/PARTH121-alt/DocMind; document Q&A assistant)"
 
 
 def _strip_html(value: str) -> str:

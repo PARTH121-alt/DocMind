@@ -17,7 +17,7 @@ from app.services.rag.types import RetrievedChunk
 
 logger = logging.getLogger(__name__)
 
-GROUNDED_SYSTEM_PROMPT = """You are DocMind, a document-grounded AI assistant.
+GROUNDED_SYSTEM_PROMPT = """You are Origin, a document-grounded AI assistant.
 
 Rules you must follow:
 1. Answer ONLY using the numbered CONTEXT passages provided. They are excerpts from the user's uploaded documents.

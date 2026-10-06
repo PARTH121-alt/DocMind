@@ -35,7 +35,7 @@ def vec(seed: int, dim: int = 16) -> np.ndarray:
 
 
 def main() -> int:
-    tmp = Path(tempfile.mkdtemp(prefix="docmind-vec-"))
+    tmp = Path(tempfile.mkdtemp(prefix="origin-vec-"))
     try:
         print("=" * 68)
         print("1. Basic add + search")

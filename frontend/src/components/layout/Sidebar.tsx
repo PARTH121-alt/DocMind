@@ -81,7 +81,7 @@ export function Sidebar({ view, onViewChange }: Props) {
         </div>
         {!collapsed && (
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold tracking-tight">DocMind</p>
+            <p className="truncate text-sm font-semibold tracking-tight">Origin</p>
             <p className="truncate text-[10px] text-ink-faint">{state.user?.username}</p>
           </div>
         )}

@@ -1,6 +1,7 @@
 /** Center chat surface: header, message list, composer, empty state. */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { eventName } from '../../lib/storage'
 import { useApp } from '../../lib/AppContext'
 import * as api from '../../lib/api'
 import type { AnswerMode, Citation, EntityCard, RetrievedChunk, ToneReading } from '../../lib/types'
@@ -175,7 +176,7 @@ export function ChatPanel() {
 
   async function exportConversation() {
     const lines = messages.map((m) =>
-      m.role === 'user' ? `## You\n\n${m.content}` : `## DocMind\n\n${m.content}`,
+      m.role === 'user' ? `## You\n\n${m.content}` : `## Origin\n\n${m.content}`,
     )
     downloadText(`${conversation?.title ?? 'conversation'}.md`, `# ${conversation?.title ?? 'Conversation'}\n\n${lines.join('\n\n---\n\n')}`)
   }
@@ -185,7 +186,7 @@ export function ChatPanel() {
   const transcript = useMemo(
     () =>
       messages
-        .map((m) => `${m.role === 'user' ? 'You' : 'DocMind'}: ${m.content}`)
+        .map((m) => `${m.role === 'user' ? 'You' : 'Origin'}: ${m.content}`)
         .join('\n\n'),
     [messages],
   )
@@ -208,7 +209,7 @@ export function ChatPanel() {
                   onCitationClick={(c) => {
                     dispatch({ type: 'preview', open: true })
                     window.dispatchEvent(
-                      new CustomEvent('docmind:preview-chunk', {
+                      new CustomEvent(eventName('preview-chunk'), {
                         detail: c.chunk_id,
                       }),
                     )

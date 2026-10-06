@@ -105,7 +105,7 @@ def _write_genai_config(model_dir: Path) -> None:
                 "num_attention_heads": heads,
                 "num_hidden_layers": layers,
                 "num_key_value_heads": kv_heads,
-                "session_options": {"log_id": "docmind", "provider_options": []},
+                "session_options": {"log_id": "origin", "provider_options": []},
                 "inputs": {
                     "input_ids": "input_ids",
                     "attention_mask": "attention_mask",

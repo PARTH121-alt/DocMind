@@ -1,4 +1,4 @@
-# DocMind - local orchestration
+# Origin - local orchestration
 #
 #   docker compose up --build          app on http://localhost:8080
 #
@@ -10,7 +10,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: docmind:latest
+    image: origin:latest
     ports:
       - "8080:8000"
     environment:
@@ -18,7 +18,7 @@ services:
       # Override in a .env file. The app refuses nothing without it, but you
       # MUST replace it before exposing this service publicly.
       SECRET_KEY: ${SECRET_KEY:-please-change-me-to-a-long-random-value}
-      DATABASE_URL: sqlite+aiosqlite:////data/docmind.db
+      DATABASE_URL: sqlite+aiosqlite:////data/origin.db
       VECTOR_DB: faiss
       STORAGE_DIR: /data
       # Leave blank to run fully on-device. Set to use hosted models + OCR.
@@ -29,7 +29,7 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
     volumes:
       # Persists uploads, the FAISS index and the model cache across restarts.
-      - docmind-data:/data
+      - origin-data:/data
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/api/health"]
@@ -47,13 +47,13 @@ services:
     profiles: ["postgres"]
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: docmind
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-docmind}
-      POSTGRES_DB: docmind
+      POSTGRES_USER: origin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-origin}
+      POSTGRES_DB: origin
     volumes:
-      - docmind-pg:/var/lib/postgresql/data
+      - origin-pg:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U docmind"]
+      test: ["CMD-SHELL", "pg_isready -U origin"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -65,10 +65,10 @@ services:
     ports:
       - "6333:6333"
     volumes:
-      - docmind-qdrant:/qdrant/storage
+      - origin-qdrant:/qdrant/storage
     restart: unless-stopped
 
 volumes:
-  docmind-data:
-  docmind-pg:
-  docmind-qdrant:
+  origin-data:
+  origin-pg:
+  origin-qdrant:

@@ -1,4 +1,4 @@
-# DocMind
+# Origin
 
 A full-screen AI document intelligence platform. Upload documents, ask questions in
 natural language, and get answers grounded in your own files with citations that link
@@ -418,6 +418,21 @@ the first line of defence, which is why the answer-level grounding check exists.
 
 ---
 
+## Name
+
+The project was renamed from **DocMind** to **Origin**. Two identifiers
+deliberately kept their old names, because renaming them destroys state that is
+expensive to rebuild and invisible to the user:
+
+| Kept as `docmind` | Why |
+|---|---|
+| `storage/docmind.db` | Renaming leaves every existing install pointing at a database that no longer exists, which is indistinguishable from losing every account and upload. |
+| Chroma collection `docmind` | Same failure mode for the vector index: it comes up empty and every search looks broken. |
+
+Browser storage moved from `docmind.*` to `origin.*` with a transparent migration
+in `frontend/src/lib/storage.ts`: reads fall back to the old key and upgrade it in
+place, so the rename logs nobody out and resets no preferences.
+
 ## Deployment
 
 ### Docker
@@ -522,4 +537,4 @@ scripts/       dev.sh, test suites, diagnostics
 ## License
 
 MIT. Models retain their own licenses — check each model card on Hugging Face before
-commercial use.# DocMind
+commercial use.# Origin

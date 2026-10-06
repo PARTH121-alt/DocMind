@@ -180,13 +180,19 @@ class FaissVectorStore(VectorStore):
 # --------------------------------------------------------------------------
 # Chroma
 # --------------------------------------------------------------------------
+#: Chroma collection name. Still the pre-rename "docmind" on purpose: renaming
+#: it would orphan every existing vector index, and a vector store that silently
+#: comes up empty looks like every upload failed. The name is internal.
+CHROMA_COLLECTION = "docmind"
+
+
 class ChromaVectorStore(VectorStore):
     def __init__(self) -> None:
         import chromadb
 
         settings.chroma_path.mkdir(parents=True, exist_ok=True)
         self.client = chromadb.PersistentClient(path=str(settings.chroma_path))
-        self.collection = self.client.get_or_create_collection("docmind")
+        self.collection = self.client.get_or_create_collection(CHROMA_COLLECTION)
 
     def add(self, ids: list[str], vectors: np.ndarray, payloads: list[dict]) -> None:
         if ids:
@@ -222,8 +228,8 @@ class ChromaVectorStore(VectorStore):
         return int(self.collection.count())
 
     def clear(self) -> None:
-        self.client.delete_collection("docmind")
-        self.collection = self.client.get_or_create_collection("docmind")
+        self.client.delete_collection(CHROMA_COLLECTION)
+        self.collection = self.client.get_or_create_collection(CHROMA_COLLECTION)
 
 
 # --------------------------------------------------------------------------
@@ -236,6 +242,8 @@ class QdrantVectorStore(VectorStore):
         from qdrant_client import QdrantClient
 
         self.client = QdrantClient(url=settings.qdrant_url, api_key=settings.qdrant_api_key)
+        # Same reasoning as CHROMA_COLLECTION: keep the legacy name so existing
+        # deployments are not silently orphaned by the rename.
         self.collection = "docmind"
         if not self.client.collection_exists(self.collection):
             self.client.create_collection(self.collection, vectors_size=384)

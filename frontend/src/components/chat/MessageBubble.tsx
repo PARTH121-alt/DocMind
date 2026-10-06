@@ -151,7 +151,7 @@ function MessageBubbleBase({
                   <button
                     onClick={() =>
                       downloadText(
-                        `docmind-${message.id.slice(0, 8)}.md`,
+                        `origin-${message.id.slice(0, 8)}.md`,
                         message.content,
                       )
                     }

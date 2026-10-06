@@ -26,7 +26,7 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 USER_AGENT = (
-    "DocMind/1.0 (https://github.com/PARTH121-alt/DocMind; document Q&A assistant)"
+    "Origin/1.0 (https://github.com/PARTH121-alt/DocMind; document Q&A assistant)"
 )
 
 MAX_BYTES = 3_000_000

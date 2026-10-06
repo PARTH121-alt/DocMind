@@ -22,7 +22,7 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-UA = "DocMind/1.0 (https://github.com/PARTH121-alt/DocMind; document Q&A assistant)"
+UA = "Origin/1.0 (https://github.com/PARTH121-alt/DocMind; document Q&A assistant)"
 API = "https://www.wikidata.org/w/api.php"
 ENTITY_API = "https://www.wikidata.org/wiki/Special:EntityData/{}.json"
 HEADERS = {"User-Agent": UA, "Accept": "application/json"}

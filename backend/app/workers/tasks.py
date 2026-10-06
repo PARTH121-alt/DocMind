@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 # still allowing several documents to progress concurrently.
 _executor = ThreadPoolExecutor(
     max_workers=max(1, min(4, (__import__("os").cpu_count() or 2) - 1)),
-    thread_name_prefix="docmind-index",
+    thread_name_prefix="origin-index",
 )
 
 

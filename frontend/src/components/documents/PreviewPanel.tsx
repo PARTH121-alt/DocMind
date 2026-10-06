@@ -6,6 +6,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react'
+import { eventName } from '../../lib/storage'
 import { useApp } from '../../lib/AppContext'
 import { documents as docsApi, meta } from '../../lib/api'
 import type { DocumentChunk, DocumentItem } from '../../lib/types'
@@ -62,8 +63,8 @@ export function PreviewPanel() {
         /* the citation may have been removed server-side */
       }
     }
-    window.addEventListener('docmind:preview-chunk', onChunk)
-    return () => window.removeEventListener('docmind:preview-chunk', onChunk)
+    window.addEventListener(eventName('preview-chunk'), onChunk)
+    return () => window.removeEventListener(eventName('preview-chunk'), onChunk)
   }, [dispatch, load])
 
   if (!open) return null

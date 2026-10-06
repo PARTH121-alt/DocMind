@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 # Used when documents are the subject of the prompt (compare/extract/quiz).
 # Retrieval still gates grounding, but these tasks must synthesize across
 # chunks rather than answer a single question.
-SYNTHESIS_PROMPT = """You are DocMind, an analyst that works only from the user's uploaded documents.
+SYNTHESIS_PROMPT = """You are Origin, an analyst that works only from the user's uploaded documents.
 
 Rules:
 1. Use ONLY the provided EXCERPTS. Never invent facts, figures, or quotes.

@@ -58,7 +58,7 @@ export function AuthScreen() {
               <IconSparkle className="text-xl" />
             </div>
             <div>
-              <p className="text-[15px] font-semibold tracking-tight">DocMind</p>
+              <p className="text-[15px] font-semibold tracking-tight">Origin</p>
               <p className="text-xs text-ink-faint">Document Intelligence</p>
             </div>
           </div>
@@ -107,7 +107,7 @@ export function AuthScreen() {
             <div className="grid h-9 w-9 place-items-center rounded-xl bg-accent text-white">
               <IconSparkle className="text-lg" />
             </div>
-            <p className="font-semibold tracking-tight">DocMind</p>
+            <p className="font-semibold tracking-tight">Origin</p>
           </div>
 
           <div className="mb-6 inline-flex rounded-xl bg-surface-2 p-1 text-sm">

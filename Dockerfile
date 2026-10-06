@@ -1,4 +1,4 @@
-# DocMind - production image
+# Origin - production image
 #
 # Multi-stage: install Python wheels, build the frontend, then ship a slim
 # runtime that serves the compiled SPA and the API from one process.
@@ -53,9 +53,9 @@ COPY backend/requirements.txt ./requirements.txt
 COPY --from=frontend /build/dist ./static
 
 # Run as a non-root user; /data holds uploads, vectors and the model cache.
-RUN useradd --create-home --uid 10001 docmind \
- && mkdir -p /data && chown -R docmind:docmind /data /app
-USER docmind
+RUN useradd --create-home --uid 10001 origin \
+ && mkdir -p /data && chown -R origin:origin /data /app
+USER origin
 
 VOLUME ["/data"]
 EXPOSE 8000

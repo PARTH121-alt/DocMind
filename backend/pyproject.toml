@@ -1,5 +1,5 @@
 [project]
-name = "docmind-backend"
+name = "origin-backend"
 version = "1.0.0"
 description = "Document intelligence platform with a Hugging Face powered RAG pipeline"
 requires-python = ">=3.11"

@@ -1,6 +1,7 @@
 /** Documents library: upload, list, search, filter, and smart actions. */
 
 import { useEffect, useMemo, useState } from 'react'
+import { eventName } from '../../lib/storage'
 import { useApp } from '../../lib/AppContext'
 import * as api from '../../lib/api'
 import type { DocumentItem, EmotionResponse, RetrievedChunk, SmartResponse } from '../../lib/types'
@@ -115,7 +116,7 @@ export function DocumentsView({ onOpenChat }: { onOpenChat: () => void }) {
 
   function previewDoc(doc: DocumentItem) {
     dispatch({ type: 'preview', open: true })
-    window.dispatchEvent(new CustomEvent('docmind:preview-doc', { detail: doc.id }))
+    window.dispatchEvent(new CustomEvent(eventName('preview-doc'), { detail: doc.id }))
   }
 
   async function runTool(

@@ -31,7 +31,7 @@ from app.services.routing import QueryMode, RouteDecision, route
 
 logger = logging.getLogger(__name__)
 
-WEB_SYSTEM_PROMPT = """You are DocMind answering a question from web pages you just fetched.
+WEB_SYSTEM_PROMPT = """You are Origin answering a question from web pages you just fetched.
 
 Rules:
 1. Use ONLY the numbered WEB PASSAGES provided. They are live pages retrieved from the web.
@@ -41,7 +41,7 @@ Rules:
 5. Be concise and factual. Mention when information may be out of date.
 """
 
-GENERAL_SYSTEM_PROMPT = """You are DocMind, a helpful assistant.
+GENERAL_SYSTEM_PROMPT = """You are Origin, a helpful assistant.
 
 You are answering a general question that is NOT about the user's uploaded documents.
 Answer naturally and concisely. Be honest when you do not know something, and do not

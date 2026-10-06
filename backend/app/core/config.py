@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     )
 
     # ---- App ----
-    app_name: str = "DocMind"
+    app_name: str = "Origin"
     environment: str = "development"
     debug: bool = False
     secret_key: str = "change-me-in-production-please-use-a-long-random-value"
@@ -30,7 +30,12 @@ class Settings(BaseSettings):
 
     # ---- Database ----
     # SQLite by default so the app runs with zero infrastructure.
-    # Production: postgresql+asyncpg://user:pass@host:5432/docmind
+    # Production: postgresql+asyncpg://user:pass@host:5432/origin
+    #
+    # The on-disk filename stays `docmind.db` after the rename to Origin.
+    # Renaming it would leave every existing install pointing at a database that
+    # no longer exists, which looks exactly like losing every account and
+    # document. The name is invisible to users, so it is not worth that.
     database_url: str = f"sqlite+aiosqlite:///{PROJECT_ROOT / 'storage' / 'docmind.db'}"
 
     # ---- Storage ----

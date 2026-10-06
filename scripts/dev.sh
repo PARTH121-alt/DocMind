@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Start the DocMind backend and frontend for local development.
+# Start the Origin backend and frontend for local development.
 # Both processes are detached so they survive the calling shell.
 
 set -euo pipefail
@@ -32,11 +32,11 @@ cleanup() {
   trap - INT TERM
   [[ -n "${API_PID:-}" ]] && kill "$API_PID" 2>/dev/null
   [[ -n "${WEB_PID:-}" ]] && kill "$WEB_PID" 2>/dev/null
-  echo "stopped DocMind"
+  echo "stopped Origin"
 }
 trap cleanup INT TERM
 
-# Stop only DocMind's own servers.
+# Stop only Origin's own servers.
 #
 # Matching on a command line alone is unsafe: another project on this machine
 # runs `uvicorn app.main:app` too, so a pattern match would kill an unrelated
@@ -51,7 +51,7 @@ stop_stale() {
       "$ROOT"/*) ;;
       *) continue ;;
     esac
-    echo "stopping stale DocMind $label (pid $pid, cwd $cwd)"
+    echo "stopping stale Origin $label (pid $pid, cwd $cwd)"
     kill "$pid" 2>/dev/null || true
   done
 }
@@ -84,7 +84,7 @@ for _ in $(seq 1 60); do
   curl -fsS -m 2 "http://$API_HOST:$WEB_PORT/" >/dev/null 2>&1 && web_ok=1
   if [[ $api_ok -eq 1 && $web_ok -eq 1 ]]; then
     echo
-    echo "DocMind is running"
+    echo "Origin is running"
     echo "  app  http://$API_HOST:$WEB_PORT"
     echo "  api  http://$API_HOST:$API_PORT/api/docs"
     echo "  logs $LOG_DIR"

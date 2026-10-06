@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run every DocMind verification suite. Assumes dev.sh is already running.
+# Run every Origin verification suite. Assumes dev.sh is already running.
 set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"

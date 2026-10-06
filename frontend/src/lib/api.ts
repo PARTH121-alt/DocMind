@@ -6,6 +6,7 @@
  * only ever sees `hf_token_configured: boolean`.
  */
 
+import { eventName, readKey, removeKey, writeKey } from './storage'
 import type {
   WebResponse,
   AppSettings,
@@ -25,7 +26,6 @@ import type {
 } from './types'
 
 const BASE = '/api'
-const TOKEN_KEY = 'docmind.token'
 
 export class ApiError extends Error {
   constructor(
@@ -38,12 +38,12 @@ export class ApiError extends Error {
 }
 
 export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY)
+  return readKey('token')
 }
 
 export function setToken(token: string | null): void {
-  if (token) localStorage.setItem(TOKEN_KEY, token)
-  else localStorage.removeItem(TOKEN_KEY)
+  if (token) writeKey('token', token)
+  else removeKey('token')
 }
 
 async function request<T>(
@@ -65,7 +65,7 @@ async function request<T>(
   if (res.status === 401 && auth) {
     setToken(null)
     // Let the app shell render the login screen.
-    window.dispatchEvent(new CustomEvent('docmind:unauthorized'))
+    window.dispatchEvent(new CustomEvent(eventName('unauthorized')))
   }
 
   if (!res.ok) {

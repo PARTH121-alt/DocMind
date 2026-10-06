@@ -41,7 +41,7 @@ export function ChatHeader() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
 
   const conversation = state.conversations.find((c) => c.id === state.activeConversationId)
-  const title = conversation?.title ?? (state.messages.length ? 'New Chat' : 'DocMind')
+  const title = conversation?.title ?? (state.messages.length ? 'New Chat' : 'Origin')
 
   const generation = state.models?.generation ?? []
   // Configured models sort ahead of unconfigured ones within a group, so the
