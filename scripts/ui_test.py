@@ -341,6 +341,110 @@ def main() -> int:
             str(mark),
         )
 
+        # ---- Ambient backdrop ----
+        #
+        # Headless Chrome reports prefers-reduced-motion: reduce by default, so
+        # motion has to be asserted with the preference explicitly overridden.
+        # Otherwise the global reduced-motion rule flattens every animation and a
+        # static background passes a motion test.
+        backdrop = ws.evaluate(
+            """
+            (() => {
+              const root = document.querySelector('[data-testid=ambient-backdrop]');
+              if (!root) return null;
+              const layers = [...root.children];
+              return {
+                layers: layers.length,
+                pointerEvents: getComputedStyle(root).pointerEvents,
+                names: layers.map(l => getComputedStyle(l).animationName),
+                durations: layers.map(l => getComputedStyle(l).animationDuration),
+              };
+            })()
+            """
+        )
+        check("ambient backdrop renders", backdrop is not None, str(backdrop))
+        if backdrop:
+            check("backdrop has layered lights", backdrop["layers"] >= 4, str(backdrop))
+            check(
+                "backdrop never intercepts clicks",
+                backdrop["pointerEvents"] == "none",
+                str(backdrop["pointerEvents"]),
+            )
+            check(
+                "backdrop layers declare animations",
+                backdrop["names"].count("none") <= 1,
+                str(backdrop["names"]),
+            )
+
+        # Reduced motion must flatten it.
+        reduced = ws.evaluate(
+            """
+            (() => {
+              const el = document.querySelector('[data-testid=ambient-backdrop] > div');
+              const cs = getComputedStyle(el);
+              return { duration: cs.animationDuration, iterations: cs.animationIterationCount };
+            })()
+            """
+            if ws.evaluate(
+                "matchMedia('(prefers-reduced-motion: reduce)').matches"
+            )
+            else None
+        )
+        check(
+            "headless Chrome emulates reduced motion (test prerequisite)",
+            reduced is not None,
+            "motion assertions below need reduce overridden, not relied upon",
+        )
+
+        # Now allow motion and prove the layers actually move.
+        ws.send(
+            "Emulation.setEmulatedMedia",
+            {"features": [{"name": "prefers-reduced-motion", "value": "no-preference"}]},
+        )
+        ws.send("Page.reload", {"ignoreCache": True})
+        time.sleep(3)
+
+        def drift_state():
+            return ws.evaluate(
+                """
+                (() => {
+                  const els = [...document.querySelectorAll('[data-testid=ambient-backdrop] > div')];
+                  return els.map(el => {
+                    const anims = el.getAnimations();
+                    return {
+                      t: anims.length ? Math.round(anims[0].currentTime || 0) : null,
+                      transform: getComputedStyle(el).transform,
+                    };
+                  });
+                })()
+                """
+            ) or []
+
+        before = drift_state()
+        check(
+            "animations are live when motion is allowed",
+            bool(before) and before[0]["t"] is not None,
+            str(before[:1]),
+        )
+        time.sleep(2)
+        after = drift_state()
+        check(
+            "the light actually drifts over time",
+            bool(before) and bool(after) and before[0]["t"] != after[0]["t"],
+            f"{before[:1]} -> {after[:1]}",
+        )
+        check(
+            "drift is a transform animation (compositor-only)",
+            bool(after) and "matrix" in after[0]["transform"],
+            str(after[:1]),
+        )
+        chrome.screenshot(shots / "29-ambient-dark.png")
+
+        # Restore defaults for the rest of the run.
+        ws.send("Emulation.setEmulatedMedia", {"features": []})
+        ws.send("Page.reload", {"ignoreCache": True})
+        time.sleep(2.5)
+
         # Theme-aware: the same tile must not look identical in both themes.
         ws.evaluate("localStorage.setItem('origin.theme','light'); true")
         ws.send("Page.reload", {"ignoreCache": True})

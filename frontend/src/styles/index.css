@@ -90,6 +90,52 @@
   }
 }
 
+/* ---- Ambient motion ----
+   Drifting light for the auth screen. Animating `transform` only, so the
+   work stays on the compositor: no layout, no repaint of the gradient itself
+   each frame. A JS animation loop or a filter:blur() here would repaint a
+   full-screen layer 60 times a second. */
+@keyframes origin-drift-a {
+  0%,
+  100% {
+    transform: translate3d(-6%, -4%, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(8%, 6%, 0) scale(1.18);
+  }
+}
+@keyframes origin-drift-b {
+  0%,
+  100% {
+    transform: translate3d(10%, 8%, 0) scale(1.1);
+  }
+  50% {
+    transform: translate3d(-8%, -6%, 0) scale(0.92);
+  }
+}
+@keyframes origin-drift-c {
+  0%,
+  100% {
+    transform: translate3d(0, 8%, 0) scale(0.95);
+  }
+  33% {
+    transform: translate3d(-10%, -8%, 0) scale(1.12);
+  }
+  66% {
+    transform: translate3d(9%, -4%, 0) scale(1.02);
+  }
+}
+/* Slow breath on the vignette. Opacity only - cheapest property to animate. */
+@keyframes origin-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
 @layer components {
   .card {
     @apply rounded-2xl border border-line bg-surface-1 shadow-card;

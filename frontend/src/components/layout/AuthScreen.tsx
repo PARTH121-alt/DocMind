@@ -5,6 +5,7 @@ import { useApp } from '../../lib/AppContext'
 import { MadeWithLove } from './MadeWithLove'
 import { IconAlert } from '../ui/Icons'
 import { LogoTile } from '../ui/Logo'
+import { AmbientBackdrop } from './AmbientBackdrop'
 import { cn } from '../../lib/utils'
 
 export function AuthScreen() {
@@ -41,15 +42,9 @@ export function AuthScreen() {
 
   return (
     <div className="relative flex h-full w-full items-center justify-center overflow-hidden bg-surface-0 px-5">
-      {/* Subtle ambient wash - two soft radial tints, no heavy gradient. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.55]"
-        style={{
-          background:
-            'radial-gradient(60rem 40rem at 15% -10%, rgb(var(--accent) / 0.10), transparent 60%), radial-gradient(50rem 34rem at 95% 110%, rgb(var(--accent) / 0.07), transparent 60%)',
-        }}
-      />
+      {/* Drifting ambient light. Replaces the previous static two-tint wash:
+          same low contrast, but it moves. */}
+      <AmbientBackdrop />
 
       <div className="relative grid w-full max-w-5xl gap-12 lg:grid-cols-[1.05fr_minmax(0,26rem)] lg:gap-16">
         {/* Brand / value panel */}
