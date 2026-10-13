@@ -273,6 +273,46 @@ def main() -> int:
         print(f"  HTTP {r.status_code}  grounded={r.json()['grounded']}")
         print(f"  answer: {r.json()['answer'][:250]}")
 
+        section("SPELLING REPAIR (typos understood)")
+        # A mistyped document question must still retrieve and answer, and the
+        # original wording must be preserved in history with the repair shown.
+        # Asked in a fresh conversation: the point is to test the repair, not
+        # the 0.5B model's ability to resist a long history.
+        r = c.post("/api/chat", json={"question": "Waht is teh Betz limit?"})
+        spell = r.json()
+        typo_conv = spell.get("conversation_id")
+        print(f"  grounded   : {spell['grounded']}  (expect True)")
+        print(f"  correction : {spell.get('correction')}")
+        print(f"  answer     : {spell['answer'][:140]}")
+        if not spell["grounded"]:
+            failures.append("typo-question-not-grounded")
+        if not spell.get("answer"):
+            failures.append("typo-question-no-answer")
+        corr = spell.get("correction") or {}
+        if corr.get("corrected", "").lower() != "what is the betz limit?":
+            failures.append("typo-not-corrected")
+        if {"from": "teh", "to": "the"} not in (corr.get("changes") or []):
+            failures.append("typo-changes-missing")
+
+        # The user's own words are what is stored, not the repaired version.
+        if typo_conv:
+            r = c.get(f"/api/conversations/{typo_conv}")
+            last_user = [m for m in r.json()["messages"] if m["role"] == "user"][-1]
+            print(f"  stored user msg: {last_user['content']!r}")
+            if last_user["content"] != "Waht is teh Betz limit?":
+                failures.append("original-wording-not-preserved")
+            if not last_user.get("correction"):
+                failures.append("correction-not-persisted")
+
+        # Routing keywords survive a typo too: a live time question.
+        r = c.post("/api/chat", json={"question": "waht is teh date today"})
+        live = r.json()
+        print(f"  live mode  : {live['mode']}  (expect live)  corrected={bool(live.get('correction'))}")
+        if live["mode"] != "live":
+            failures.append("typo-live-not-routed")
+        if not live.get("correction"):
+            failures.append("typo-live-no-correction")
+
         section("CHUNK CONTEXT (citation preview)")
         cit = (got_done.get("citations") or [{}])[0]
         if cit.get("chunk_id"):

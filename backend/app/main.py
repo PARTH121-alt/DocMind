@@ -38,8 +38,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Origin API",
     description=(
-        "Full-stack document intelligence platform: upload documents, index them "
-        "with Hugging Face embeddings, and ask grounded questions with citations."
+        "A general AI assistant. Chat about anything, search the live web, look up "
+        "structured facts, or upload documents for grounded answers with citations."
     ),
     version="1.0.0",
     lifespan=lifespan,

@@ -19,6 +19,7 @@ import {
   IconCheck,
   IconCopy,
   IconDownload,
+  IconEdit,
   IconQuote,
   IconRefresh,
 } from '../ui/Icons'
@@ -192,6 +193,21 @@ function MessageBubbleBase({
         {isUser && !streaming && message.tone && (
           <div className="mt-1.5">
             <ToneBadge tone={message.tone} />
+          </div>
+        )}
+
+        {/* Typos Origin quietly repaired before answering. The user's own words
+            are still what is shown above; this only says how they were read. */}
+        {isUser && !streaming && message.correction && (
+          <div
+            data-testid="spelling-note"
+            className="mt-1.5 flex max-w-[85%] items-start gap-1.5 px-1 text-[11px] text-ink-faint"
+          >
+            <IconEdit className="mt-[1px] shrink-0 text-[11px]" />
+            <span>
+              Interpreted as{' '}
+              <span className="text-ink-muted">{message.correction.corrected}</span>
+            </span>
           </div>
         )}
 

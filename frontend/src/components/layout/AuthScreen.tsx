@@ -53,23 +53,24 @@ export function AuthScreen() {
             <LogoTile size={40} />
             <div>
               <p className="text-[15px] font-semibold tracking-tight">Origin</p>
-              <p className="text-xs text-ink-faint">Document Intelligence</p>
+              <p className="text-xs text-ink-faint">AI Assistant</p>
             </div>
           </div>
 
           <h1 className="text-balance text-[2.6rem] font-semibold leading-[1.1] tracking-tight">
-            Chat with your documents.
+            Ask anything. Know where it came from.
           </h1>
           <p className="mt-4 max-w-lg text-[15px] leading-relaxed text-ink-muted">
-            Upload files and ask questions. Answers are grounded in your own documents and
-            every claim links back to the exact page it came from.
+            Origin is a general AI assistant. Chat about anything, look things up on the
+            live web, or upload your own files - and every answer is labelled with exactly
+            where it came from.
           </p>
 
           <ul className="mt-9 space-y-3.5">
             {[
-              ['Grounded answers', 'Refuses questions your documents cannot support'],
-              ['Source citations', 'Jump straight to the supporting passage and page'],
-              ['Private by default', 'Your documents are never used by anyone else'],
+              ['Ask anything', 'Chat, explain, summarise or brainstorm - no setup required'],
+              ['Bring your own documents', 'Upload files for grounded answers with real citations'],
+              ['Always sourced', 'Your files, the live web, structured data, or general knowledge - never a mystery'],
             ].map(([title, desc]) => (
               <li key={title} className="flex gap-3">
                 <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />

@@ -91,6 +91,7 @@ export function ChatPanel() {
               mode: 'document' as const,
               entity: null,
               tone: null,
+              correction: null,
             },
           ],
         })

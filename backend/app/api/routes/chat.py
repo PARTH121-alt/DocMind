@@ -84,6 +84,7 @@ def _resolution_payload(res: resolver.Resolution) -> dict:
         "citations": [c.model_dump() if hasattr(c, "model_dump") else c for c in res.citations],
         "entity": res.entity,
         "tone": res.tone,
+        "correction": res.correction,
         "retrieved_chunks": [c.to_dict() for c in (res.chunks if res.grounded else [])],
         "warnings": res.warnings,
         "processing_time_ms": res.latency_ms,
@@ -156,6 +157,7 @@ async def chat_route(
         mode_reason=res.mode_reason,
         entity=res.entity,
         tone=res.tone,
+        correction=res.correction,
         citations=res.citations,
         retrieved_chunks=[c.to_dict() for c in (res.chunks if res.grounded else [])],
         model=res.model_label,
@@ -276,6 +278,7 @@ async def get_conversation(
                 mode=m.mode,
                 entity=(m.meta or {}).get("entity"),
                 tone=(m.meta or {}).get("tone"),
+                correction=(m.meta or {}).get("correction"),
                 citations=[
                     CitationOut(
                         document_id=c.document_id,

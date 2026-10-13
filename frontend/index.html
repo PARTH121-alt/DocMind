@@ -3,13 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="description" content="Chat with your documents. Grounded answers with citations, powered by Hugging Face models." />
-    <title>Origin - Chat with your documents</title>
+    <meta name="description" content="Origin - a general AI assistant. Ask anything, chat with the live web, or upload your documents for grounded answers with citations." />
+    <title>Origin - AI Assistant</title>
     <script>
-      // Apply the saved theme before first paint to avoid a flash.
+      // Apply the saved theme before first paint to avoid a flash. Checks the
+      // current key first, then the pre-rename one.
       (function () {
         try {
-          var t = localStorage.getItem('docmind.theme') || 'system';
+          var t = localStorage.getItem('origin.theme')
+            || localStorage.getItem('docmind.theme')
+            || 'system';
           var dark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
           document.documentElement.classList.toggle('dark', dark);
         } catch (e) {}

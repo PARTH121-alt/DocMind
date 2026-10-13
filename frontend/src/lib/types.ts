@@ -92,6 +92,15 @@ export interface Message {
   entity: EntityCard | null
   /** Emotional tone of the user's question, when it read clearly. */
   tone: ToneReading | null
+  /** Spelling repairs applied to the question, when there were any. */
+  correction?: Correction | null
+}
+
+/** A small, visible record of the typos Origin repaired before answering. */
+export interface Correction {
+  original: string
+  corrected: string
+  changes: { from: string; to: string }[]
 }
 
 export interface Conversation {
@@ -137,6 +146,7 @@ export interface ChatResponse {
   mode_reason: string
   entity: EntityCard | null
   tone?: ToneReading | null
+  correction?: Correction | null
   citations: Citation[]
   retrieved_chunks: RetrievedChunk[]
   model: string

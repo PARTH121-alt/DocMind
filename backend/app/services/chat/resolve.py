@@ -28,6 +28,8 @@ from app.services.chat import service
 from app.services.rag import retrieval
 from app.services.rag.types import RetrievedChunk
 from app.services.routing import QueryMode, RouteDecision, route
+from app.services.text.spelling import Correction
+from app.services.text.spelling import correct as correct_spelling
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +71,8 @@ class Resolution:
     entity: dict | None = None
     # How the user's message read emotionally, when it did.
     tone: dict | None = None
+    # Spelling repairs applied to the question, when there were any.
+    correction: dict | None = None
 
     @property
     def model_label(self) -> str:
@@ -102,21 +106,36 @@ def decide(
 
 
 async def prepare(
-    db: AsyncSession, user: User, req: ChatRequest
+    db: AsyncSession,
+    user: User,
+    req: ChatRequest,
+    *,
+    original: str | None = None,
+    correction: Correction | None = None,
 ) -> tuple[Conversation, RouteDecision, list[Document]]:
-    """Create the conversation row and decide how to answer."""
+    """Create the conversation row and decide how to answer.
+
+    ``req.question`` is the (possibly corrected) text used for routing and the
+    title. ``original`` is what the user actually typed and is what gets stored;
+    the repair is recorded alongside it so the UI can show it back.
+    """
     conv = await service.get_or_create_conversation(db, user, req.conversation_id, req.model)
     # Tone lives on the *user* row: the badge is attached to the user's bubble,
     # so storing it on the assistant row would leave reloaded history blank.
     tone = _tone_for(req.question)
+    meta: dict = {}
+    if tone:
+        meta["tone"] = tone
+    if correction is not None and correction.changed:
+        meta["correction"] = correction.to_dict(original or req.question)
     db.add(
         Message(
             id=new_id(),
             conversation_id=conv.id,
             user_id=user.id,
             role=MessageRole.user,
-            content=req.question,
-            meta={"tone": tone} if tone else {},
+            content=original if original is not None else req.question,
+            meta=meta,
         )
     )
     if conv.title == "New Chat":
@@ -522,7 +541,11 @@ def sanitize_text(text: str) -> str:
 async def resolve(db: AsyncSession, user: User, req: ChatRequest) -> Resolution:
     """Route and answer, persisting the turn."""
     started = time.time()
-    conv, decision, docs = await prepare(db, user, req)
+    original = req.question
+    correction = correct_spelling(original)
+    if correction.changed:
+        req = req.model_copy(update={"question": correction.text})
+    conv, decision, docs = await prepare(db, user, req, original=original, correction=correction)
 
     if decision.mode is QueryMode.live:
         resolution = await resolve_live(db, user, req, conv, started)
@@ -534,6 +557,9 @@ async def resolve(db: AsyncSession, user: User, req: ChatRequest) -> Resolution:
         resolution = await resolve_general(db, user, req, conv, decision, started)
     else:
         resolution = await resolve_document(db, user, req, conv, docs, started)
+
+    if correction.changed:
+        resolution.correction = correction.to_dict(original)
 
     await service.save_assistant_message(
         db,
@@ -557,7 +583,19 @@ async def stream_tokens(
 ) -> AsyncIterator[tuple[str, Resolution | None, str | None]]:
     """Yield ('delta', text, None) then ('done', resolution, None) or ('error', None, msg)."""
     started = time.time()
-    conv, decision, docs = await prepare(db, user, req)
+    original = req.question
+    correction = correct_spelling(original)
+    correction_payload = correction.to_dict(original) if correction.changed else None
+    if correction.changed:
+        req = req.model_copy(update={"question": correction.text})
+
+    def _tag(res: Resolution) -> Resolution:
+        # Every branch returns through here so the spelling note can never be
+        # forgotten on one code path but present on another.
+        res.correction = correction_payload
+        return res
+
+    conv, decision, docs = await prepare(db, user, req, original=original, correction=correction)
     model = chat_model.get_chat_model(req.model)
 
     # ---- Modes that do not need token streaming ----
@@ -568,7 +606,7 @@ async def stream_tokens(
             False, res.confidence, mode=res.mode, tone=res.tone,
         )
         yield ("delta", res.answer, None)
-        yield ("done", res, None)
+        yield ("done", _tag(res), None)
         return
 
     if decision.mode is QueryMode.entity:
@@ -578,7 +616,7 @@ async def stream_tokens(
             db, user, conv, res.answer, [], res.model_label, res.latency_ms,
             res.grounded, res.confidence, mode=res.mode, tone=res.tone, entity=res.entity,
         )
-        yield ("done", res, None)
+        yield ("done", _tag(res), None)
         return
 
     if decision.mode is QueryMode.general:
@@ -590,7 +628,7 @@ async def stream_tokens(
             db, user, conv, res.answer, [], res.model_label, res.latency_ms,
             False, res.confidence, mode=res.mode, tone=res.tone,
         )
-        yield ("done", res, None)
+        yield ("done", _tag(res), None)
         return
 
     if decision.mode is QueryMode.web:
@@ -604,7 +642,7 @@ async def stream_tokens(
             db, user, conv, res.answer, res.chunks if res.grounded else [],
             res.model_label, res.latency_ms, res.grounded, res.confidence, mode=res.mode, tone=res.tone,
         )
-        yield ("done", res, None)
+        yield ("done", _tag(res), None)
         return
 
     # ---- Document mode: true token streaming ----
@@ -615,7 +653,7 @@ async def stream_tokens(
             db, user, conv, res.answer, [], res.model_label, res.latency_ms,
             False, res.confidence, mode=res.mode, tone=res.tone,
         )
-        yield ("done", res, None)
+        yield ("done", _tag(res), None)
         return
 
     chunks = await anyio.to_thread.run_sync(
@@ -637,7 +675,7 @@ async def stream_tokens(
             db, user, conv, res.answer, [], res.model_label, res.latency_ms,
             False, res.confidence, mode=res.mode, tone=res.tone,
         )
-        yield ("done", res, None)
+        yield ("done", _tag(res), None)
         return
 
     for chunk in chunks:
@@ -694,6 +732,6 @@ async def stream_tokens(
         db, user, conv, answer, chunks if grounded else [], model.label,
         resolution.latency_ms, grounded, resolution.confidence, mode=resolution.mode, tone=resolution.tone,
     )
-    yield ("done", resolution, None)
+    yield ("done", _tag(resolution), None)
 
 

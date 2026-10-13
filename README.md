@@ -1,12 +1,15 @@
 # Origin
 
-A full-screen AI document intelligence platform. Upload documents, ask questions in
-natural language, and get answers grounded in your own files with citations that link
-back to the exact passage and page.
+A full-screen AI assistant. Ask anything, search the live web, look up structured
+facts, or upload your own documents for answers grounded in those files with citations
+that link back to the exact passage and page. Every answer is labelled with where it
+came from, so a document-grounded reply, a web reply and a general-knowledge reply
+never look alike.
 
-Every model runs through Hugging Face — BGE embeddings, a Qwen instruct model for
-generation, and a BGE cross-encoder for reranking. Nothing is faked: if the documents
-don't contain the answer, the assistant says so instead of inventing one.
+Models run through Hugging Face — BGE embeddings, a Qwen instruct model for
+generation, and a BGE cross-encoder for reranking — or through OpenAI, Anthropic and
+Google, if you add their keys. Nothing is faked: if a document-grounded question is
+not supported by the files, the assistant says so instead of inventing an answer.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
@@ -215,7 +218,6 @@ document-grounded unless it is.
 | 🌐 **From the web** | Pages fetched live | yes, if supported | Search or a pasted URL, then the same grounding check; citations link to the URL |
 | 🗂️ **Structured data** | Wikidata | yes | Real-world entities as a fact card (capital, population, founder…) |
 | 🟣 **Live** | Server clock | n/a | Date and time computed on the server — **never** asked of the model, which has no clock |
-| 🔵 **Structured data** | Wikidata | yes | Real-world entities rendered as a fact card, not prose |
 | 🟠 **General knowledge** | The model's own weights | **no** | Greetings and general questions, clearly marked as unsourced |
 
 Ask "hi", "what is today's date", "who is the current president of France",
@@ -277,6 +279,31 @@ schemes, resolves the hostname and refuses any private, loopback, link-local
 or reserved address — blocking SSRF against cloud metadata
 (`169.254.169.254`), internal panels and `localhost` — and re-validates after
 every redirect. Responses are size- and time-bounded.
+
+## Understanding typos
+
+People mistype, and a router that only recognises the exact word `weather` will
+happily ignore "wethar". Before routing and retrieval, a deterministic spell
+repair pass fixes the obvious slips — two-character transpositions, doubled or
+wrong vowels, and the `teh`/`adn` class of swapped letters.
+
+- **Offline and instant.** A SymSpell-style deletion index over a bundled
+  frequency-ordered word list, verified with optimal string-alignment distance.
+  No API call, no model, ~1 ms per question.
+- **The user's words are kept.** Only the working copy used for routing and the
+  model is repaired; the stored message keeps the original text, and the UI shows
+  an *"Interpreted as …"* note so the correction is never hidden.
+- **Conservative by construction.** Numbers, URLs, code, acronyms and
+  hyphenated/possessive tokens are never touched. Capitalised words that are not
+  at a sentence start are treated as proper nouns and left alone, and words that
+  are real words wearing an inflection ("extracting" → "extract") are recognised
+  rather than "corrected".
+
+```
+"Waht is teh Betz limit?"   →   interpreted as: What is the Betz limit?
+```
+
+---
 
 ## Anti-hallucination
 
@@ -387,6 +414,7 @@ the *desired* outcome.
 | `entity_test.py` | Entity/property extraction, document-question rejection, fact formatting, throttling |
 | `provider_test.py` | Hosted provider adapters against mock servers reproducing each vendor's wire format; missing-key and malformed-payload handling |
 | `sentiment_test.py` | Emotion lexicon integrity, negation, intensifiers, sarcasm limitation, mixed documents, passage ranking, tone guidance, determinism |
+| `spelling_test.py` | Typo repair, change reporting, and preservation of numbers, URLs, code, acronyms and proper nouns |
 | `chunking_test.py` | Cleaning artefacts; chunk invariants (page anchoring, offsets, overlap) |
 | `vectorstore_test.py` | FAISS add/search/delete, and that deletions keep ids and payloads aligned |
 | `e2e_pipeline_test.py` | Real extraction → embedding → FAISS → generation, plus both defences |

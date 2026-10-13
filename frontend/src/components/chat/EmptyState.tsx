@@ -1,4 +1,4 @@
-/** Landing / empty state shown before any documents are uploaded. */
+/** Landing / empty state shown before the first message. */
 
 import { useEffect, useState } from 'react'
 import { useApp } from '../../lib/AppContext'
@@ -8,7 +8,7 @@ import { IconFile, IconSparkle, IconUpload } from '../ui/Icons'
 import { LogoTile } from '../ui/Logo'
 import { useToast } from '../ui/Toasts'
 
-const FLOW = ['Upload', 'Process', 'Ask', 'Get cited answers']
+const FLOW = ['Ask anything', 'Or upload files', 'Get sourced answers']
 
 export function EmptyState({ onAsk }: { onAsk: (question: string) => void }) {
   const { state, derived, reloadDocuments } = useApp()
@@ -69,42 +69,39 @@ export function EmptyState({ onAsk }: { onAsk: (question: string) => void }) {
         <LogoTile size={56} className="mx-auto mb-5" />
 
         <h2 className="text-balance text-[1.75rem] font-semibold tracking-tight">
-          Chat with your documents.
+          Ask anything.
         </h2>
         <p className="mx-auto mt-2.5 max-w-lg text-balance text-[15px] leading-relaxed text-ink-muted">
-          Upload your files and ask questions. Your AI assistant will find the relevant
-          information and explain it with sources.
+          Chat, ask a question, or think out loud. Origin answers from its own knowledge,
+          the live web, or your documents - and tells you which.
         </p>
         <p className="mx-auto mt-2 max-w-lg text-[13px] text-ink-faint">
-          You can also paste a URL to analyse a website, ask about the live web, or ask
-          anything general - every answer is labelled with where it came from.
+          Upload files for grounded answers with citations, paste a URL to analyse a page,
+          or just start typing. Nothing here is required to begin.
         </p>
 
         <div className="mt-7 flex flex-wrap items-center justify-center gap-2.5">
-          {hasIndexed ? (
-            <button
-              onClick={() =>
-                document.querySelector<HTMLTextAreaElement>('textarea')?.focus()
-              }
-              className="btn-primary"
-            >
-              <IconSparkle className="text-base" />
-              Ask a question
-            </button>
-          ) : (
-            <button
-              onClick={() =>
-                document.querySelector<HTMLInputElement>('input[type=file]')?.click()
-              }
-              className="btn-primary"
-            >
-              <IconUpload className="text-base" />
-              Upload Documents
-            </button>
-          )}
-          <button onClick={loadDemo} disabled={loadingDemo} className="btn-secondary">
+          <button
+            onClick={() =>
+              document.querySelector<HTMLTextAreaElement>('textarea')?.focus()
+            }
+            className="btn-primary"
+          >
+            <IconSparkle className="text-base" />
+            Start chatting
+          </button>
+          <button
+            onClick={() =>
+              document.querySelector<HTMLInputElement>('input[type=file]')?.click()
+            }
+            className="btn-secondary"
+          >
+            <IconUpload className="text-base" />
+            Upload documents
+          </button>
+          <button onClick={loadDemo} disabled={loadingDemo} className="btn-ghost">
             <IconFile className="text-base" />
-            {loadingDemo ? 'Loading…' : 'Try Demo Document'}
+            {loadingDemo ? 'Loading…' : 'Try a demo'}
           </button>
         </div>
 

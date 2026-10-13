@@ -126,6 +126,8 @@ class MessageOut(ORMModel):
     entity: EntityCardOut | None = None
     # Emotional tone of the user's question, when it read clearly.
     tone: ToneOut | None = None
+    # Spelling repairs applied to the question, when there were any.
+    correction: dict | None = None
 
 
 class ChatRequest(BaseModel):
@@ -170,6 +172,8 @@ class ChatResponse(BaseModel):
     entity: EntityCardOut | None = None
     # Present when the user's message read as emotional.
     tone: ToneOut | None = None
+    # Present when the question had typos that were repaired for understanding.
+    correction: dict | None = None
     citations: list[CitationOut]
     retrieved_chunks: list[dict]
     model: str

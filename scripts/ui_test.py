@@ -298,6 +298,16 @@ def main() -> int:
             "Origin" in title,
             f"body={title[:160]!r}",
         )
+        check(
+            "auth screen positions Origin as a general assistant",
+            "AI Assistant" in title and "Ask anything" in title,
+            f"body={title[:200]!r}",
+        )
+        check(
+            "document-only framing is gone from the auth screen",
+            "Document Intelligence" not in title and "Chat with your documents" not in title,
+            f"body={title[:200]!r}",
+        )
 
         # ---- Logo ----
         def logo_gradient() -> str:
@@ -510,7 +520,12 @@ def main() -> int:
         body = ws.evaluate("document.body.innerText") or ""
         if "already exists" in body:
             raise RuntimeError(f"registration conflict for {email}")
-        check("signed in (chat visible)", "Chat with your documents" in body, body[:200])
+        check("signed in (chat visible)", "Ask anything" in body, body[:200])
+        check(
+            "chat landing offers a general start",
+            "Start chatting" in body,
+            body[:200],
+        )
         check("upload zone present", "Drop your documents here" in body)
         chrome.screenshot(shots / "03-empty-state.png")
 
@@ -519,7 +534,7 @@ def main() -> int:
             """
             (() => {
               const btns = [...document.querySelectorAll('button')];
-              btns.find(b => b.textContent.includes('Try Demo Document'))?.click();
+              btns.find(b => b.textContent.includes('Try a demo'))?.click();
               return true;
             })()
             """
@@ -621,6 +636,51 @@ def main() -> int:
             body[:300],
         )
         chrome.screenshot(shots / "08-preview.png")
+
+        # ---- Typo is repaired and shown back to the user ----
+        ws.evaluate(
+            """
+            (() => {
+              const ta = document.querySelector('textarea');
+              const d = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value');
+              d.set.call(ta, 'Waht is teh Betz limit?');
+              ta.dispatchEvent(new Event('input', {bubbles:true}));
+              return true;
+            })()
+            """
+        )
+        time.sleep(0.4)
+        ws.evaluate(
+            """
+            (() => {
+              const send = [...document.querySelectorAll('button')]
+                .find(b => b.getAttribute('aria-label') === 'Send message');
+              send?.click();
+              return Boolean(send);
+            })()
+            """
+        )
+
+        note = None
+        for _ in range(45):
+            note = ws.evaluate(
+                """
+                (() => {
+                  const el = document.querySelector('[data-testid=spelling-note]');
+                  return el ? el.innerText : null;
+                })()
+                """
+            )
+            if note:
+                break
+            time.sleep(2)
+        check("spelling note appears for a typo", bool(note), str(note))
+        if note:
+            check("note says how it was interpreted", "Interpreted as" in note, note)
+            check("note keeps the corrected words", "Betz" in note, note)
+        page = ws.evaluate("document.body.innerText") or ""
+        check("the user's own wording is still shown", "Waht is teh Betz limit?" in page, page[-400:])
+        chrome.screenshot(shots / "31-spelling-note.png")
 
         # ---- Live / general answers and their provenance badges ----
         print()
